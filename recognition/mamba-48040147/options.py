@@ -1,3 +1,8 @@
+import random
+import torch
+from os import path as osp
+from basicsr.utils import set_random_seed
+
 INITIAL_MODEL_PATH = "mambairv2_ColorDN_15.pth"
 FINAL_MODEL_PATH = INITIAL_MODEL_PATH
 
@@ -14,3 +19,160 @@ INNER_RANK = 64
 NUM_TOKENS = 128
 CONVFFN_KERNEL_SIZE = 5
 MLP_RATIO = 2
+
+NUM_GPU = 1
+
+# Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml
+OPTIONS = {
+    "name": "MambaIRv2_ColorDN_level25",
+    "model_type": "MambaIRv2Model",
+    "scale": 1,
+    "num_gpu": NUM_GPU,
+    "manual_seed": 10,
+    "datasets": {
+        "train": {
+            "task": "denoising_color",
+            "noise": 25,
+            "name": "DFWB_RGB",
+            "type": "PairedImageDataset",
+            "dataroot_gt": "/home/gh/dataset/DFWB_RGB/HQ",
+            "dataroot_lq": "/home/gh/dataset/DFWB_RGB/HQ",
+            "filename_tmpl": "{}",
+            "io_backend": {"type": "disk"},
+            "gt_size": 128,
+            "use_hflip": True,
+            "use_rot": True,
+            "use_shuffle": True,
+            "num_worker_per_gpu": 32,
+            "batch_size_per_gpu": 2,
+            "dataset_enlarge_ratio": 100,
+            "prefetch_mode": None,
+        },
+        "val": {
+            "task": "denoising_color",
+            "noise": 25,
+            "name": "CBSD68",
+            "type": "PairedImageDataset",
+            "dataroot_gt": "/home/gh/dataset/ColorDN/CBSD68HQ",
+            "dataroot_lq": "/home/gh/dataset/ColorDN/CBSD68HQ",
+            "filename_tmpl": "{}",
+            "io_backend": {"type": "disk"},
+        },
+    },
+    "network_g": {
+        "type": "MambaIRv2",
+        "upscale": UPSCALE,
+        "in_chans": IN_CHANS,
+        "img_size": IMG_SIZE,
+        "img_range": IMG_RANGE,
+        "embed_dim": EMBED_DIM,
+        "d_state": D_STATE,
+        "depths": DEPTHS,
+        "num_heads": NUM_HEADS,
+        "window_size": WINDOW_SIZE,
+        "inner_rank": INNER_RANK,
+        "num_tokens": NUM_TOKENS,
+        "convffn_kernel_size": CONVFFN_KERNEL_SIZE,
+        "mlp_ratio": MLP_RATIO,
+    },
+    "path": {
+        "pretrain_network_g": INITIAL_MODEL_PATH,
+        "strict_load_g": True,
+        "resume_state": None,
+    },
+    "train": {
+        "optim_g": {
+            "type": "Adam",
+            "lr": 1e-4,
+            "weight_decay": 0,
+            "betas": [0.9, 0.99],
+        },
+        "scheduler": {
+            "type": "MultiStepLR",
+            "milestones": [400000, 600000, 700000, 750000],
+            "gamma": 0.5,
+        },
+        "total_iter": 800000,
+        "warmup_iter": -1,
+        "pixel_opt": {
+            "type": "CharbonnierLoss",
+            "loss_weight": 1.0,
+            "reduction": "mean",
+            "eps": 1e-3,
+        },
+    },
+    "val": {
+        "val_freq": 5e3,
+        "save_img": False,
+        "metrics": {
+            "psnr": {
+                "type": "calculate_psnr",
+                "crop_border": 0,
+                "test_y_channel": False,
+            }
+        },
+    },
+    "logger": {
+        "print_freq": 200,
+        "save_checkpoint_freq": 5e3,
+        "use_tb_logger": True,
+        "wandb": {"project": None, "resume_id": None},
+    },
+    "dist_params": {"backend": "nccl", "port": 29500},
+    "dist": False,
+    "rank": 0,
+    "world_size": 1,
+    "is_train": True,
+    "auto_resume": False,
+    "debug": False,
+}
+
+
+# Modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/utils/options.py
+def parse_options(root_path) -> dict:
+    opt = OPTIONS
+
+    # random seed
+    seed = opt.get("manual_seed")
+    if seed is None:
+        seed = random.randint(1, 10000)
+        opt["manual_seed"] = seed
+    set_random_seed(seed + opt["rank"])
+
+    if opt["num_gpu"] == "auto":
+        opt["num_gpu"] = torch.cuda.device_count()
+
+    # datasets
+    for phase, dataset in opt["datasets"].items():
+        # for multiple datasets, e.g., val_1, val_2; test_1, test_2
+        phase = phase.split("_")[0]
+        dataset["phase"] = phase
+        if "scale" in opt:
+            dataset["scale"] = opt["scale"]
+
+    # paths
+    for key, val in opt["path"].items():
+        if (val is not None) and ("resume_state" in key or "pretrain_network" in key):
+            opt["path"][key] = osp.expanduser(val)
+
+    if opt["is_train"]:
+        experiments_root = osp.join(root_path, "experiments", opt["name"])
+        opt["path"]["experiments_root"] = experiments_root
+        opt["path"]["models"] = osp.join(experiments_root, "models")
+        opt["path"]["training_states"] = osp.join(experiments_root, "training_states")
+        opt["path"]["log"] = experiments_root
+        opt["path"]["visualization"] = osp.join(experiments_root, "visualization")
+
+        # change some options for debug mode
+        if "debug" in opt["name"]:
+            if "val" in opt:
+                opt["val"]["val_freq"] = 8
+            opt["logger"]["print_freq"] = 1
+            opt["logger"]["save_checkpoint_freq"] = 8
+    else:  # test
+        results_root = osp.join(root_path, "results", opt["name"])
+        opt["path"]["results_root"] = results_root
+        opt["path"]["log"] = results_root
+        opt["path"]["visualization"] = osp.join(results_root, "visualization")
+
+    return opt

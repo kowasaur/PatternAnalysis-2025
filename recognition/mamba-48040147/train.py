@@ -3,15 +3,6 @@ This file was modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/
 """
 
 import datetime
-import sys
-import os
-
-current_dir = os.path.dirname(os.path.abspath(__file__))
-parent_dir = os.path.abspath(os.path.join(current_dir, ".."))
-
-# Add the parent directory to sys.path
-sys.path.append(parent_dir)
-
 import logging
 import math
 import time
@@ -35,7 +26,8 @@ from basicsr.utils import (
     mkdir_and_rename,
     scandir,
 )
-from basicsr.utils.options import copy_opt_file, dict2str, parse_options
+from basicsr.utils.options import dict2str
+from options import parse_options
 
 
 def init_tb_loggers(opt):
@@ -141,7 +133,7 @@ def load_resume_state(opt):
 
 def train_pipeline(root_path):
     # parse options, set distributed setting, set ramdom seed
-    opt, args = parse_options(root_path, is_train=True)
+    opt = parse_options(root_path)
     opt["root_path"] = root_path
 
     torch.backends.cudnn.benchmark = True
@@ -158,9 +150,6 @@ def train_pipeline(root_path):
             and opt["rank"] == 0
         ):
             mkdir_and_rename(osp.join(opt["root_path"], "tb_logger", opt["name"]))
-
-    # copy the yml file to the experiment root
-    copy_opt_file(args.opt, opt["path"]["experiments_root"])
 
     # WARNING: should not use get_root_logger in the above codes, including the called functions
     # Otherwise the logger will not be properly initialized
