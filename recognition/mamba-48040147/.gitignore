@@ -1,0 +1,11 @@
+# Original repo
+MambaIR
+basicsr
+
+# Training set
+DIV2K_train_HR
+
+# Other files
+*.zip
+*.pth
+**/__pycache__

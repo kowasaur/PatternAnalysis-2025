@@ -18,11 +18,11 @@ import time
 import torch
 from os import path as osp
 
-from MambaIR.basicsr.data import build_dataloader, build_dataset
-from MambaIR.basicsr.data.data_sampler import EnlargedSampler
-from MambaIR.basicsr.data.prefetch_dataloader import CPUPrefetcher, CUDAPrefetcher
-from MambaIR.basicsr.models import build_model
-from MambaIR.basicsr.utils import (
+from basicsr.data import build_dataloader, build_dataset
+from basicsr.data.data_sampler import EnlargedSampler
+from basicsr.data.prefetch_dataloader import CPUPrefetcher, CUDAPrefetcher
+from basicsr.models import build_model
+from basicsr.utils import (
     AvgTimer,
     MessageLogger,
     check_resume,
@@ -35,7 +35,7 @@ from MambaIR.basicsr.utils import (
     mkdir_and_rename,
     scandir,
 )
-from MambaIR.basicsr.utils.options import copy_opt_file, dict2str, parse_options
+from basicsr.utils.options import copy_opt_file, dict2str, parse_options
 
 
 def init_tb_loggers(opt):

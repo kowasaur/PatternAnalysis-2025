@@ -5,14 +5,14 @@ This file was modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/
 from torch.utils import data as data
 from torchvision.transforms.functional import normalize
 
-from MambaIR.basicsr.data.data_util import (
+from basicsr.data.data_util import (
     paired_paths_from_folder,
     paired_paths_from_lmdb,
     paired_paths_from_meta_info_file,
 )
-from MambaIR.basicsr.data.transforms import augment, paired_random_crop
-from MambaIR.basicsr.utils import FileClient, imfrombytes, img2tensor
-from MambaIR.basicsr.utils.matlab_functions import rgb2ycbcr
+from basicsr.data.transforms import augment, paired_random_crop
+from basicsr.utils import FileClient, imfrombytes, img2tensor
+from basicsr.utils.matlab_functions import rgb2ycbcr
 
 import numpy as np
 

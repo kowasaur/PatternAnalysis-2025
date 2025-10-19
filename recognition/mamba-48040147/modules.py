@@ -6,9 +6,10 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from MambaIR.basicsr.archs.arch_util import to_2tuple, trunc_normal_
+from basicsr.archs.arch_util import to_2tuple, trunc_normal_
 from mamba_ssm.ops.selective_scan_interface import selective_scan_fn
 from einops import repeat
+from options import *
 
 
 def index_reverse(index):
@@ -958,35 +959,25 @@ class UpsampleOneStep(nn.Sequential):
 class MambaIRv2(nn.Module):
     def __init__(
         self,
-        img_size=64,
+        img_size=IMG_SIZE,
         patch_size=1,
-        in_chans=3,
-        embed_dim=48,
-        d_state=8,
-        depths=(
-            6,
-            6,
-            6,
-            6,
-        ),
-        num_heads=(
-            4,
-            4,
-            4,
-            4,
-        ),
-        window_size=16,
-        inner_rank=32,
-        num_tokens=64,
-        convffn_kernel_size=5,
-        mlp_ratio=2.0,
+        in_chans=IN_CHANS,
+        embed_dim=EMBED_DIM,
+        d_state=D_STATE,
+        depths=DEPTHS,
+        num_heads=NUM_HEADS,
+        window_size=WINDOW_SIZE,
+        inner_rank=INNER_RANK,
+        num_tokens=NUM_TOKENS,
+        convffn_kernel_size=CONVFFN_KERNEL_SIZE,
+        mlp_ratio=MLP_RATIO,
         qkv_bias=True,
         norm_layer=nn.LayerNorm,
         ape=False,
         patch_norm=True,
         use_checkpoint=False,
-        upscale=2,
-        img_range=1.0,
+        upscale=UPSCALE,
+        img_range=IMG_RANGE,
         upsampler="",
         resi_connection="1conv",
         **kwargs,
