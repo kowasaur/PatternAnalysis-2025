@@ -3,12 +3,14 @@ import torch
 from os import path as osp
 from basicsr.utils import set_random_seed
 
-INITIAL_MODEL_PATH = "mambairv2_ColorDN_15.pth"
+PRETRAINED_MODEL_PATH = "mambairv2_ColorDN_15.pth"
+INITIAL_MODEL_PATH = "mambairv2_Colouriser.pth"
 FINAL_MODEL_PATH = INITIAL_MODEL_PATH
 DATASET_PATH = "./DIV2K_train_HR"
 
 UPSCALE = 1
-IN_CHANS = 3
+IN_CHANS = 1
+OUT_CHANS = 2
 IMG_SIZE = 128
 IMG_RANGE = 1
 EMBED_DIM = 174
@@ -25,7 +27,7 @@ NUM_GPU = 1
 
 # Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml
 OPTIONS = {
-    "name": "MambaIRv2_ColorDN_level25",
+    "name": "MambaIRv2_Colouriser",
     "model_type": "MambaIRv2Model",
     "scale": 1,
     "num_gpu": NUM_GPU,
@@ -54,6 +56,7 @@ OPTIONS = {
         "type": "MambaIRv2",
         "upscale": UPSCALE,
         "in_chans": IN_CHANS,
+        "out_chans": OUT_CHANS,
         "img_size": IMG_SIZE,
         "img_range": IMG_RANGE,
         "embed_dim": EMBED_DIM,
@@ -80,10 +83,10 @@ OPTIONS = {
         },
         "scheduler": {
             "type": "MultiStepLR",
-            "milestones": [400000, 600000, 700000, 750000],
+            "milestones": [40000, 60000, 70000, 75000],
             "gamma": 0.5,
         },
-        "total_iter": 800000,
+        "total_iter": 80000,
         "warmup_iter": -1,
         "pixel_opt": {
             "type": "CharbonnierLoss",

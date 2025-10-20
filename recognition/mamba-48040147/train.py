@@ -27,11 +27,28 @@ from basicsr.utils import (
     scandir,
 )
 from basicsr.utils.options import dict2str
-from options import parse_options
+from options import INITIAL_MODEL_PATH, parse_options, PRETRAINED_MODEL_PATH
 
 # Don't remove these. They are used to register the dataset and model
 import dataset
 import modules
+
+
+def transform_pretrained_model_state():
+    """Transform the pretrained model state dictionary to match the current
+    model architecture."""
+    state_dict = torch.load(PRETRAINED_MODEL_PATH)
+    params = state_dict["params"]
+
+    # Average the rgb weights to create a single-channel weight
+    params["conv_first.weight"] = params["conv_first.weight"].mean(dim=1, keepdim=True)
+
+    # Remove the last convolutional layer weights
+    # These will be randomly initialized in the new model
+    del params["conv_last.weight"]
+    del params["conv_last.bias"]
+
+    torch.save(state_dict, INITIAL_MODEL_PATH)
 
 
 def init_tb_loggers(opt):
@@ -168,6 +185,9 @@ def train_pipeline(root_path):
     # create train and validation dataloaders
     result = create_train_val_dataloader(opt, logger)
     train_loader, train_sampler, val_loaders, total_epochs, total_iters = result
+
+    # must be called before build_model()
+    transform_pretrained_model_state()
 
     # create model
     model = build_model(opt)

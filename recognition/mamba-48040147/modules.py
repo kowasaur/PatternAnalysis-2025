@@ -668,7 +668,6 @@ class BasicBlock(nn.Module):
         qkv_bias=True,
         norm_layer=nn.LayerNorm,
         downsample=None,
-        use_checkpoint=False,
     ):
 
         super().__init__()
@@ -734,7 +733,6 @@ class ASSB(nn.Module):
         qkv_bias=True,
         norm_layer=nn.LayerNorm,
         downsample=None,
-        use_checkpoint=False,
         img_size=224,
         patch_size=4,
         resi_connection="1conv",
@@ -775,7 +773,6 @@ class ASSB(nn.Module):
             qkv_bias=qkv_bias,
             norm_layer=norm_layer,
             downsample=downsample,
-            use_checkpoint=use_checkpoint,
         )
 
         if resi_connection == "1conv":
@@ -896,6 +893,7 @@ class MambaIRv2(nn.Module):
         img_size=IMG_SIZE,
         patch_size=1,
         in_chans=IN_CHANS,
+        out_chans=OUT_CHANS,
         embed_dim=EMBED_DIM,
         d_state=D_STATE,
         depths=DEPTHS,
@@ -909,14 +907,13 @@ class MambaIRv2(nn.Module):
         norm_layer=nn.LayerNorm,
         ape=False,
         patch_norm=True,
-        use_checkpoint=False,
         img_range=IMG_RANGE,
         resi_connection="1conv",
         **kwargs,
     ):
         super().__init__()
         num_in_ch = in_chans
-        num_out_ch = in_chans
+        num_out_ch = out_chans
         self.img_range = img_range
         if in_chans == 3:
             rgb_mean = (0.4488, 0.4371, 0.4040)
@@ -985,7 +982,6 @@ class MambaIRv2(nn.Module):
                 qkv_bias=qkv_bias,
                 norm_layer=norm_layer,
                 downsample=None,
-                use_checkpoint=use_checkpoint,
                 img_size=img_size,
                 patch_size=patch_size,
                 resi_connection=resi_connection,
@@ -1006,8 +1002,7 @@ class MambaIRv2(nn.Module):
                 nn.Conv2d(embed_dim // 4, embed_dim, 3, 1, 1),
             )
 
-        # ------------------------- 3, high quality image reconstruction ------------------------- #
-        # for image denoising and JPEG compression artifact reduction
+        # ------------------------- 3, colourisation ------------------------- #
         self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
         self.apply(self._init_weights)
@@ -1106,10 +1101,10 @@ class MambaIRv2(nn.Module):
         attn_mask = self.calculate_mask([h, w]).to(x.device)
         params = {"attn_mask": attn_mask, "rpi_sa": self.relative_position_index_SA}
 
-        # for image denoising and JPEG compression artifact reduction
+        # for getting colours
         x_first = self.conv_first(x)
         res = self.conv_after_body(self.forward_features(x_first, params)) + x_first
-        x = x + self.conv_last(res)
+        x = self.conv_last(res)
 
         x = x / self.img_range + self.mean
 
