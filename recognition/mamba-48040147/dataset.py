@@ -13,10 +13,12 @@ from basicsr.data.data_util import (
 from basicsr.data.transforms import augment, paired_random_crop
 from basicsr.utils import FileClient, imfrombytes, img2tensor
 from basicsr.utils.matlab_functions import rgb2ycbcr
+from basicsr.utils.registry import DATASET_REGISTRY
 
 import numpy as np
 
 
+@DATASET_REGISTRY.register()
 class PairedImageDataset(data.Dataset):
     """Paired image dataset for image restoration.
 

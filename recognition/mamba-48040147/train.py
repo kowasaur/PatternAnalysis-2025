@@ -29,6 +29,10 @@ from basicsr.utils import (
 from basicsr.utils.options import dict2str
 from options import parse_options
 
+# Don't remove these. They are used to register the dataset and model
+import dataset
+import modules
+
 
 def init_tb_loggers(opt):
     # initialize wandb logger before tensorboard logger to allow proper sync
@@ -277,5 +281,5 @@ def train_pipeline(root_path):
 
 
 if __name__ == "__main__":
-    root_path = osp.abspath(osp.join(__file__, osp.pardir, osp.pardir))
-    train_pipeline(root_path)
+    current_path = osp.dirname(osp.abspath(__file__))
+    train_pipeline(current_path)

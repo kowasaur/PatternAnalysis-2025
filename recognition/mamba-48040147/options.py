@@ -5,6 +5,7 @@ from basicsr.utils import set_random_seed
 
 INITIAL_MODEL_PATH = "mambairv2_ColorDN_15.pth"
 FINAL_MODEL_PATH = INITIAL_MODEL_PATH
+DATASET_PATH = "./DIV2K_train_HR"
 
 UPSCALE = 1
 IN_CHANS = 3
@@ -35,8 +36,8 @@ OPTIONS = {
             "noise": 25,
             "name": "DFWB_RGB",
             "type": "PairedImageDataset",
-            "dataroot_gt": "/home/gh/dataset/DFWB_RGB/HQ",
-            "dataroot_lq": "/home/gh/dataset/DFWB_RGB/HQ",
+            "dataroot_gt": DATASET_PATH,
+            "dataroot_lq": DATASET_PATH,
             "filename_tmpl": "{}",
             "io_backend": {"type": "disk"},
             "gt_size": 128,
@@ -47,16 +48,6 @@ OPTIONS = {
             "batch_size_per_gpu": 2,
             "dataset_enlarge_ratio": 100,
             "prefetch_mode": None,
-        },
-        "val": {
-            "task": "denoising_color",
-            "noise": 25,
-            "name": "CBSD68",
-            "type": "PairedImageDataset",
-            "dataroot_gt": "/home/gh/dataset/ColorDN/CBSD68HQ",
-            "dataroot_lq": "/home/gh/dataset/ColorDN/CBSD68HQ",
-            "filename_tmpl": "{}",
-            "io_backend": {"type": "disk"},
         },
     },
     "network_g": {
