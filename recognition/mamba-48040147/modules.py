@@ -889,74 +889,6 @@ class PatchUnEmbed(nn.Module):
         return flops
 
 
-class Upsample(nn.Sequential):
-    """Upsample module.
-
-    Args:
-        scale (int): Scale factor. Supported scales: 2^n and 3.
-        num_feat (int): Channel number of intermediate features.
-    """
-
-    def __init__(self, scale, num_feat):
-        m = []
-        self.scale = scale
-        self.num_feat = num_feat
-        if (scale & (scale - 1)) == 0:  # scale = 2^n
-            for _ in range(int(math.log(scale, 2))):
-                m.append(nn.Conv2d(num_feat, 4 * num_feat, 3, 1, 1))
-                m.append(nn.PixelShuffle(2))
-        elif scale == 3:
-            m.append(nn.Conv2d(num_feat, 9 * num_feat, 3, 1, 1))
-            m.append(nn.PixelShuffle(3))
-        else:
-            raise ValueError(
-                f"scale {scale} is not supported. Supported scales: 2^n and 3."
-            )
-        super(Upsample, self).__init__(*m)
-
-    def flops(self, input_resolution):
-        flops = 0
-        x, y = input_resolution
-        if (self.scale & (self.scale - 1)) == 0:
-            flops += (
-                self.num_feat
-                * 4
-                * self.num_feat
-                * 9
-                * x
-                * y
-                * int(math.log(self.scale, 2))
-            )
-        else:
-            flops += self.num_feat * 9 * self.num_feat * 9 * x * y
-        return flops
-
-
-class UpsampleOneStep(nn.Sequential):
-    """UpsampleOneStep module (the difference with Upsample is that it always only has 1conv + 1pixelshuffle)
-       Used in lightweight SR to save parameters.
-
-    Args:
-        scale (int): Scale factor. Supported scales: 2^n and 3.
-        num_feat (int): Channel number of intermediate features.
-
-    """
-
-    def __init__(self, scale, num_feat, num_out_ch, input_resolution=None):
-        self.num_feat = num_feat
-        self.input_resolution = input_resolution
-        m = []
-        m.append(nn.Conv2d(num_feat, (scale**2) * num_out_ch, 3, 1, 1))
-        m.append(nn.PixelShuffle(scale))
-        super(UpsampleOneStep, self).__init__(*m)
-
-    def flops(self, input_resolution):
-        flops = 0
-        h, w = self.patches_resolution if input_resolution is None else input_resolution
-        flops = h * w * self.num_feat * 3 * 9
-        return flops
-
-
 @ARCH_REGISTRY.register()
 class MambaIRv2(nn.Module):
     def __init__(
@@ -978,24 +910,19 @@ class MambaIRv2(nn.Module):
         ape=False,
         patch_norm=True,
         use_checkpoint=False,
-        upscale=UPSCALE,
         img_range=IMG_RANGE,
-        upsampler="",
         resi_connection="1conv",
         **kwargs,
     ):
         super().__init__()
         num_in_ch = in_chans
         num_out_ch = in_chans
-        num_feat = 64
         self.img_range = img_range
         if in_chans == 3:
             rgb_mean = (0.4488, 0.4371, 0.4040)
             self.mean = torch.Tensor(rgb_mean).view(1, 3, 1, 1)
         else:
             self.mean = torch.zeros(1, 1, 1, 1)
-        self.upscale = upscale
-        self.upsampler = upsampler
 
         # ------------------------- 1, shallow feature extraction ------------------------- #
         self.conv_first = nn.Conv2d(num_in_ch, embed_dim, 3, 1, 1)
@@ -1080,35 +1007,8 @@ class MambaIRv2(nn.Module):
             )
 
         # ------------------------- 3, high quality image reconstruction ------------------------- #
-        if self.upsampler == "pixelshuffle":
-            # for classical SR
-            self.conv_before_upsample = nn.Sequential(
-                nn.Conv2d(embed_dim, num_feat, 3, 1, 1), nn.LeakyReLU(inplace=True)
-            )
-            self.upsample = Upsample(upscale, num_feat)
-            self.conv_last = nn.Conv2d(num_feat, num_out_ch, 3, 1, 1)
-        elif self.upsampler == "pixelshuffledirect":
-            # for lightweight SR (to save parameters)
-            self.upsample = UpsampleOneStep(
-                upscale,
-                embed_dim,
-                num_out_ch,
-                (patches_resolution[0], patches_resolution[1]),
-            )
-        elif self.upsampler == "nearest+conv":
-            # for real-world SR (less artifacts)
-            assert self.upscale == 4, "only support x4 now."
-            self.conv_before_upsample = nn.Sequential(
-                nn.Conv2d(embed_dim, num_feat, 3, 1, 1), nn.LeakyReLU(inplace=True)
-            )
-            self.conv_up1 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
-            self.conv_up2 = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
-            self.conv_hr = nn.Conv2d(num_feat, num_feat, 3, 1, 1)
-            self.conv_last = nn.Conv2d(num_feat, num_out_ch, 3, 1, 1)
-            self.lrelu = nn.LeakyReLU(negative_slope=0.2, inplace=True)
-        else:
-            # for image denoising and JPEG compression artifact reduction
-            self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
+        # for image denoising and JPEG compression artifact reduction
+        self.conv_last = nn.Conv2d(embed_dim, num_out_ch, 3, 1, 1)
 
         self.apply(self._init_weights)
 
@@ -1206,42 +1106,14 @@ class MambaIRv2(nn.Module):
         attn_mask = self.calculate_mask([h, w]).to(x.device)
         params = {"attn_mask": attn_mask, "rpi_sa": self.relative_position_index_SA}
 
-        if self.upsampler == "pixelshuffle":
-            # for classical SR
-            x = self.conv_first(x)
-            x = self.conv_after_body(self.forward_features(x, params)) + x
-            x = self.conv_before_upsample(x)
-            x = self.conv_last(self.upsample(x))
-        elif self.upsampler == "pixelshuffledirect":
-            # for lightweight SR
-            x = self.conv_first(x)
-            x = self.conv_after_body(self.forward_features(x, params)) + x
-            x = self.upsample(x)
-        elif self.upsampler == "nearest+conv":
-            # for real-world SR
-            x = self.conv_first(x)
-            x = self.conv_after_body(self.forward_features(x, params)) + x
-            x = self.conv_before_upsample(x)
-            x = self.lrelu(
-                self.conv_up1(
-                    torch.nn.functional.interpolate(x, scale_factor=2, mode="nearest")
-                )
-            )
-            x = self.lrelu(
-                self.conv_up2(
-                    torch.nn.functional.interpolate(x, scale_factor=2, mode="nearest")
-                )
-            )
-            x = self.conv_last(self.lrelu(self.conv_hr(x)))
-        else:
-            # for image denoising and JPEG compression artifact reduction
-            x_first = self.conv_first(x)
-            res = self.conv_after_body(self.forward_features(x_first, params)) + x_first
-            x = x + self.conv_last(res)
+        # for image denoising and JPEG compression artifact reduction
+        x_first = self.conv_first(x)
+        res = self.conv_after_body(self.forward_features(x_first, params)) + x_first
+        x = x + self.conv_last(res)
 
         x = x / self.img_range + self.mean
 
         # unpadding
-        x = x[..., : h_ori * self.upscale, : w_ori * self.upscale]
+        x = x[..., : h_ori , : w_ori]
 
         return x
