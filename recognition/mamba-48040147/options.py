@@ -6,7 +6,7 @@ from basicsr.utils import set_random_seed
 PRETRAINED_MODEL_PATH = "mambairv2_ColorDN_15.pth"
 INITIAL_MODEL_PATH = "mambairv2_Colouriser.pth"
 FINAL_MODEL_PATH = INITIAL_MODEL_PATH
-DATASET_PATH = "./DIV2K_train_HR"
+DATASET_PATH = "./images/train"
 
 UPSCALE = 1
 IN_CHANS = 1
@@ -71,7 +71,7 @@ OPTIONS = {
     },
     "path": {
         "pretrain_network_g": INITIAL_MODEL_PATH,
-        "strict_load_g": True,
+        "strict_load_g": False,
         "resume_state": None,
     },
     "train": {
@@ -93,17 +93,6 @@ OPTIONS = {
             "loss_weight": 1.0,
             "reduction": "mean",
             "eps": 1e-3,
-        },
-    },
-    "val": {
-        "val_freq": 5e3,
-        "save_img": False,
-        "metrics": {
-            "psnr": {
-                "type": "calculate_psnr",
-                "crop_border": 0,
-                "test_y_channel": False,
-            }
         },
     },
     "logger": {
