@@ -11,7 +11,7 @@ if __name__ == "__main__":
         print("Usage: python predict.py <path_to_image>")
         sys.exit(1)
 
-    model = MambaIRv2()
+    model = MambaIRv2().cuda()
     # TODO: change to strict=True because should be using trained model
     model.load_state_dict(torch.load(FINAL_MODEL_PATH)["params"], strict=False)
     model.eval()
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     y_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE) / 255.0
     y_tensor = np.expand_dims(y_img, axis=2)  # img2tensor needs 3 dimensions
     y_tensor = img2tensor(y_tensor, float32=True)
-    y_tensor = y_tensor.unsqueeze(0)
+    y_tensor = y_tensor.unsqueeze(0).cuda()
 
     # Inference
     with torch.no_grad():
