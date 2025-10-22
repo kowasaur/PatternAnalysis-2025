@@ -26,17 +26,17 @@ if __name__ == "__main__":
 
     # Inference
     with torch.no_grad():
-        cbcr_tensor = model(y_tensor)
+        crcb_tensor = model(y_tensor)
 
     # Convert tensor to numpy
-    cbcr_np = cbcr_tensor.squeeze(0).cpu().numpy()  # [2,H,W]
+    crcb_np = crcb_tensor.squeeze(0).cpu().numpy()  # [2,H,W]
 
     # Stack Y + CbCr: combine grayscale and colour
-    ycbcr = np.stack([y_img, cbcr_np[0], cbcr_np[1]], axis=2)  # [H,W,3]
+    ycrcb = np.stack([y_img, crcb_np[0], crcb_np[1]], axis=2)  # [H,W,3]
 
     # Convert YCbCr -> BGR for OpenCV
-    ycbcr = (ycbcr * 255.0).clip(0, 255).astype(np.uint8)
-    bgr_img = cv2.cvtColor(ycbcr, cv2.COLOR_YCrCb2BGR)
+    ycrcb = (ycrcb * 255.0).clip(0, 255).astype(np.uint8)
+    bgr_img = cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
 
     save_path = "output.png"
     imwrite(bgr_img, save_path)
