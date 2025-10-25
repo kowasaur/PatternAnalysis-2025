@@ -24,6 +24,7 @@ CONVFFN_KERNEL_SIZE = 5
 MLP_RATIO = 2
 
 NUM_GPU = 1
+BATCH_SIZE = 1
 
 # Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml
 OPTIONS = {
@@ -47,7 +48,7 @@ OPTIONS = {
             "use_rot": True,
             "use_shuffle": True,
             "num_worker_per_gpu": 1,
-            "batch_size_per_gpu": 8,
+            "batch_size_per_gpu": BATCH_SIZE,
             "dataset_enlarge_ratio": 100,
             "prefetch_mode": None,
         },
