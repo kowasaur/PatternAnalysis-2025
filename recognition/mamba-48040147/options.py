@@ -24,10 +24,10 @@ CONVFFN_KERNEL_SIZE = 5
 MLP_RATIO = 2
 
 NUM_GPU = 1
-BATCH_SIZE = 4
-UNFREEZE_ITER = 50000
+BATCH_SIZE = 3
+UNFREEZE_ITER = 40000
 
-# Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml
+# Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml and https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_SRSmall_x2.yml
 OPTIONS = {
     "name": "MambaIRv2_Colouriser",
     "model_type": "MambaIRv2Model",
@@ -84,10 +84,10 @@ OPTIONS = {
         },
         "scheduler": {
             "type": "MultiStepLR",
-            "milestones": [UNFREEZE_ITER, 125000, 200000, 225000, 237500],
+            "milestones": [UNFREEZE_ITER, 100000, 160000, 180000, 190000],
             "gamma": 0.5,
         },
-        "total_iter": 250000,
+        "total_iter": 200000,
         "warmup_iter": -1,
         "pixel_opt": {
             "type": "CharbonnierLoss",
@@ -98,7 +98,7 @@ OPTIONS = {
     },
     "logger": {
         "print_freq": 500,
-        "save_checkpoint_freq": 2e4,
+        "save_checkpoint_freq": 1e4,
         "use_tb_logger": True,
         "wandb": {"project": None, "resume_id": None},
     },

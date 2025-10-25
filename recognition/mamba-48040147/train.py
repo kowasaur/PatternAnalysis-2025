@@ -302,8 +302,8 @@ def train_pipeline(root_path):
 
             # save models and training states
             if current_iter % opt["logger"]["save_checkpoint_freq"] == 0:
-                logger.info("Saving models and training states.")
-                model.save(epoch, current_iter)
+                logger.info("Saving model.")
+                model.save_network(model.net_g, "net_g", current_iter)
 
             # validation
             if opt.get("val") is not None and (
