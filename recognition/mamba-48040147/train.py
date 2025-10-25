@@ -27,7 +27,12 @@ from basicsr.utils import (
     scandir,
 )
 from basicsr.utils.options import dict2str
-from options import INITIAL_MODEL_PATH, parse_options, PRETRAINED_MODEL_PATH
+from options import (
+    INITIAL_MODEL_PATH,
+    UNFREEZE_ITER,
+    parse_options,
+    PRETRAINED_MODEL_PATH,
+)
 
 # Don't remove these. They are used to register the dataset and model
 import dataset
@@ -59,6 +64,21 @@ def transform_pretrained_model_state():
         del params[key]
 
     torch.save(state_dict, INITIAL_MODEL_PATH)
+
+
+def set_all_requires_grad(model: modules.MambaIRv2, requires_grad: bool):
+    """Set requires_grad for all the parameters in the model."""
+    for param in model.parameters():
+        param.requires_grad = requires_grad
+
+
+def freeze_except_last_and_first(model: modules.MambaIRv2):
+    """Freeze all layers except the first and last convolutional layers."""
+    set_all_requires_grad(model, False)
+    for param in model.conv_first.parameters():
+        param.requires_grad = True
+    for param in model.conv_last.parameters():
+        param.requires_grad = True
 
 
 def init_tb_loggers(opt):
@@ -202,6 +222,9 @@ def train_pipeline(root_path):
     # create model
     model = build_model(opt)
 
+    # freeze all layers except the first and last conv layers
+    freeze_except_last_and_first(model.net_g)
+
     if resume_state:  # resume training
         model.resume_training(resume_state)  # handle optimizers and schedulers
         logger.info(
@@ -246,6 +269,11 @@ def train_pipeline(root_path):
             current_iter += 1
             if current_iter > total_iters:
                 break
+
+            # Unfreeze everything
+            if current_iter == UNFREEZE_ITER:
+                set_all_requires_grad(model.net_g, True)
+
             # update learning rate
             model.update_learning_rate(
                 current_iter, warmup_iter=opt["train"].get("warmup_iter", -1)

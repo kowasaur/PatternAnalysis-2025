@@ -25,6 +25,7 @@ MLP_RATIO = 2
 
 NUM_GPU = 1
 BATCH_SIZE = 4
+UNFREEZE_ITER = 50000
 
 # Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml
 OPTIONS = {
@@ -83,7 +84,7 @@ OPTIONS = {
         },
         "scheduler": {
             "type": "MultiStepLR",
-            "milestones": [50000, 125000, 200000, 225000, 237500],
+            "milestones": [UNFREEZE_ITER, 125000, 200000, 225000, 237500],
             "gamma": 0.5,
         },
         "total_iter": 250000,
