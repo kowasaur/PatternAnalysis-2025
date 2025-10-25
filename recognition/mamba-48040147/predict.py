@@ -12,8 +12,7 @@ if __name__ == "__main__":
         sys.exit(1)
 
     model = MambaIRv2().cuda()
-    # TODO: change to strict=True because should be using trained model
-    model.load_state_dict(torch.load(FINAL_MODEL_PATH)["params"], strict=False)
+    model.load_state_dict(torch.load(FINAL_MODEL_PATH)["params"], strict=True)
     model.eval()
 
     img_path = sys.argv[1]

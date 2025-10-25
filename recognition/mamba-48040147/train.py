@@ -48,6 +48,16 @@ def transform_pretrained_model_state():
     del params["conv_last.weight"]
     del params["conv_last.bias"]
 
+    # Remove unused upsampling layers from super resolution model
+    UNUSED = [
+        "conv_before_upsample.0.weight",
+        "conv_before_upsample.0.bias",
+        "upsample.0.weight",
+        "upsample.0.bias",
+    ]
+    for key in UNUSED:
+        del params[key]
+
     torch.save(state_dict, INITIAL_MODEL_PATH)
 
 

@@ -3,7 +3,7 @@ import torch
 from os import path as osp
 from basicsr.utils import set_random_seed
 
-PRETRAINED_MODEL_PATH = "mambairv2_ColorDN_15.pth"
+PRETRAINED_MODEL_PATH = "mambairv2_classicSR_Small_x2.pth"
 INITIAL_MODEL_PATH = "mambairv2_Colouriser.pth"
 FINAL_MODEL_PATH = INITIAL_MODEL_PATH
 DATASET_PATH = "./images/train"
@@ -13,10 +13,10 @@ IN_CHANS = 1
 OUT_CHANS = 2
 IMG_SIZE = 128
 IMG_RANGE = 1
-EMBED_DIM = 174
+EMBED_DIM = 132
 D_STATE = 16
-DEPTHS = [6, 6, 6, 6, 6, 6]
-NUM_HEADS = [6, 6, 6, 6, 6, 6]
+DEPTHS = [4, 4, 4, 4, 4, 4]
+NUM_HEADS = [4, 4, 4, 4, 4, 4]
 WINDOW_SIZE = 16
 INNER_RANK = 64
 NUM_TOKENS = 128
@@ -36,8 +36,7 @@ OPTIONS = {
     "datasets": {
         "train": {
             "task": "denoising_color",
-            "noise": 25,
-            "name": "DFWB_RGB",
+            "name": "DIV2K",
             "type": "PairedImageDataset",
             "dataroot_gt": DATASET_PATH,
             "dataroot_lq": DATASET_PATH,
@@ -49,7 +48,7 @@ OPTIONS = {
             "use_shuffle": True,
             "num_worker_per_gpu": 1,
             "batch_size_per_gpu": BATCH_SIZE,
-            "dataset_enlarge_ratio": 100,
+            "dataset_enlarge_ratio": 40,
             "prefetch_mode": None,
         },
     },
@@ -84,10 +83,10 @@ OPTIONS = {
         },
         "scheduler": {
             "type": "MultiStepLR",
-            "milestones": [40000, 60000, 70000, 75000],
+            "milestones": [125000, 200000, 225000, 237500],
             "gamma": 0.5,
         },
-        "total_iter": 80000,
+        "total_iter": 250000,
         "warmup_iter": -1,
         "pixel_opt": {
             "type": "CharbonnierLoss",
@@ -97,8 +96,8 @@ OPTIONS = {
         },
     },
     "logger": {
-        "print_freq": 200,
-        "save_checkpoint_freq": 5e3,
+        "print_freq": 500,
+        "save_checkpoint_freq": 2e4,
         "use_tb_logger": True,
         "wandb": {"project": None, "resume_id": None},
     },
