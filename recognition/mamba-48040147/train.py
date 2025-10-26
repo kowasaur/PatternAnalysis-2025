@@ -33,6 +33,7 @@ from options import (
     parse_options,
     PRETRAINED_MODEL_PATH,
 )
+from predict import predict_test_folder
 
 # Don't remove these. They are used to register the dataset and model
 import dataset
@@ -337,7 +338,10 @@ def train_pipeline(root_path):
     if tb_logger:
         tb_logger.close()
 
+    return model.net_g
+
 
 if __name__ == "__main__":
     current_path = osp.dirname(osp.abspath(__file__))
-    train_pipeline(current_path)
+    model = train_pipeline(current_path)
+    predict_test_folder(model)

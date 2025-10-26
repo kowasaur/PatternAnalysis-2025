@@ -1,4 +1,5 @@
 import sys
+import os
 import cv2
 import torch
 import numpy as np
@@ -6,17 +7,12 @@ from basicsr.utils import img2tensor, imwrite
 from modules import MambaIRv2
 from options import FINAL_MODEL_PATH
 
-if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        print("Usage: python predict.py <path_to_image>")
-        sys.exit(1)
+TEST_DIR = "images/test/"
+OUTPUT_DIR = "images/output/"
 
-    model = MambaIRv2().cuda()
-    model.load_state_dict(torch.load(FINAL_MODEL_PATH)["params"], strict=True)
-    model.eval()
 
-    img_path = sys.argv[1]
-
+def predict_image(img_path: str, model: MambaIRv2):
+    """Run inference on a single image and save the output."""
     # Make image grayscale and right format
     y_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE) / 255.0
     y_tensor = np.expand_dims(y_img, axis=2)  # img2tensor needs 3 dimensions
@@ -37,5 +33,31 @@ if __name__ == "__main__":
     ycrcb = (ycrcb * 255.0).clip(0, 255).astype(np.uint8)
     bgr_img = cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
 
-    save_path = "output.png"
+    # Make output dir if doesn't exist
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+    # Save output image
+    img_name = os.path.basename(img_path)
+    save_path = os.path.join(OUTPUT_DIR, img_name)
     imwrite(bgr_img, save_path)
+
+
+def predict_test_folder(model: MambaIRv2):
+    """Run inference on all images in the test directory"""
+    for img_name in os.listdir(TEST_DIR):
+        print(f"Processing {img_name}...")
+        img_path = os.path.join(TEST_DIR, img_name)
+        predict_image(img_path, model)
+
+
+if __name__ == "__main__":
+    model = MambaIRv2().cuda()
+    model.load_state_dict(torch.load(FINAL_MODEL_PATH)["params"], strict=True)
+    model.eval()
+
+    if len(sys.argv) > 1:
+        # Predict single image
+        img_path = sys.argv[1]
+        predict_image(img_path, model)
+    else:
+        predict_test_folder(model)
