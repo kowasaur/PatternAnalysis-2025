@@ -10,7 +10,7 @@ from options import FINAL_MODEL_PATH
 TEST_DIR = "images/test/"
 OUTPUT_DIR = "images/output/"
 
-MAX_PIXELS = 1920 * 1080  # Rangpur runs out of memory on larger images
+MAX_PIXELS = 1600 * 1200  # Rangpur runs out of memory on larger images
 
 
 def predict_image(img_path: str, model: MambaIRv2):
