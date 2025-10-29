@@ -8,6 +8,7 @@ INITIAL_MODEL_PATH = "mambairv2_Colouriser.pth"
 FINAL_MODEL_PATH = INITIAL_MODEL_PATH
 DATASET_PATH = "./images/train"
 
+# Model
 UPSCALE = 1
 IN_CHANS = 1
 OUT_CHANS = 2
@@ -23,9 +24,12 @@ NUM_TOKENS = 128
 CONVFFN_KERNEL_SIZE = 5
 MLP_RATIO = 2
 
+# Training
 NUM_GPU = 1
 BATCH_SIZE = 3
-UNFREEZE_ITER = 40000
+UNFREEZE_ITER = 60000
+CROP_SIZE = 128
+DATASET_ENLARGE_RATIO = 100
 
 # Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml and https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_SRSmall_x2.yml
 OPTIONS = {
@@ -43,13 +47,13 @@ OPTIONS = {
             "dataroot_lq": DATASET_PATH,
             "filename_tmpl": "{}",
             "io_backend": {"type": "disk"},
-            "gt_size": 128,
+            "gt_size": CROP_SIZE,
             "use_hflip": True,
             "use_rot": True,
             "use_shuffle": True,
             "num_worker_per_gpu": 1,
             "batch_size_per_gpu": BATCH_SIZE,
-            "dataset_enlarge_ratio": 40,
+            "dataset_enlarge_ratio": DATASET_ENLARGE_RATIO,
             "prefetch_mode": None,
         },
     },
@@ -84,7 +88,7 @@ OPTIONS = {
         },
         "scheduler": {
             "type": "MultiStepLR",
-            "milestones": [UNFREEZE_ITER, 100000, 160000, 180000, 190000],
+            "milestones": [50000, 100000, 160000, 180000, 190000],
             "gamma": 0.5,
         },
         "total_iter": 200000,
