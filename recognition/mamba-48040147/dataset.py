@@ -3,7 +3,6 @@ This file was modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/
 """
 
 from torch.utils import data as data
-from torchvision.transforms.functional import normalize
 
 from basicsr.data.data_util import paired_paths_from_folder
 from basicsr.data.transforms import augment, paired_random_crop
@@ -12,6 +11,33 @@ from basicsr.utils.registry import DATASET_REGISTRY
 import numpy as np
 import cv2
 import torch
+
+# https://docs.opencv.org/4.9.0/de/d25/imgproc_color_conversions.html
+# Docs say L: 0~100, a: -127~127, b: -127~127
+L_SCALE = 100
+AB_SCALE = 127
+
+
+def read_image_lab(imgpath: str):
+    """Read an image aand convert it to Lab color space."""
+    img = cv2.imread(imgpath, cv2.IMREAD_COLOR).astype(np.float32) / 255.0
+    return cv2.cvtColor(img, cv2.COLOR_BGR2Lab)
+
+
+def lab_split_tensor(img_lab):
+    """Split a Lab image and convert to tensors.
+
+    Returns img_l (1, H, W), img_ab (2, H, W), L channel numpy array (H, W)
+    """
+    L, a, b = cv2.split(img_lab)
+
+    # normalize to [0, 1]
+    a /= AB_SCALE
+    b /= AB_SCALE
+
+    img_l = torch.from_numpy(L / L_SCALE).unsqueeze(0)  # shape (1, H, W)
+    img_ab = torch.from_numpy(np.stack([a, b], axis=0))  # shape (2, H, W)
+    return img_l, img_ab, L
 
 
 @DATASET_REGISTRY.register()
@@ -39,10 +65,7 @@ class PairedImageDataset(data.Dataset):
     def __init__(self, opt):
         super(PairedImageDataset, self).__init__()
         self.opt = opt
-        self.mean = opt["mean"] if "mean" in opt else None
-        self.std = opt["std"] if "std" in opt else None
         self.task = opt["task"] if "task" in opt else None
-        self.noise = opt["noise"] if "noise" in opt else 0
 
         self.gt_folder, self.lq_folder = opt["dataroot_gt"], opt["dataroot_lq"]
         if "filename_tmpl" in opt:
@@ -59,35 +82,22 @@ class PairedImageDataset(data.Dataset):
 
     def __getitem__(self, index):
         scale = self.opt["scale"]
+        path = self.paths[index]["gt_path"]
 
-        # Load gt and lq images. Dimension order: HWC; channel order: BGR;
-        gt_path = self.paths[index]["gt_path"]
-        lq_path = gt_path
-        img = cv2.imread(gt_path, cv2.IMREAD_COLOR)
-        img_gt = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb).astype(np.float32) / 255.0
-        img_lq = img_gt
+        img = read_image_lab(path)
 
         # augmentation for training
         if self.opt["phase"] == "train":
             gt_size = self.opt["gt_size"]
-            # random crop
-            img_gt, img_lq = paired_random_crop(img_gt, img_lq, gt_size, scale, gt_path)
+            # random crop. Since paired, need to pass image twice
+            img, _ = paired_random_crop(img, img, gt_size, scale, path)
             # flip, rotation
-            img_gt, img_lq = augment(
-                [img_gt, img_lq], self.opt["use_hflip"], self.opt["use_rot"]
-            )
+            img = augment(img, self.opt["use_hflip"], self.opt["use_rot"])
 
-        # Split channels
-        Y, Cr, Cb = cv2.split(img_gt)
-        img_lq = torch.from_numpy(Y).unsqueeze(0)  # shape (1, H, W)
-        img_gt = torch.from_numpy(np.stack([Cr, Cb], axis=0))  # shape (2, H, W)
+        # Split channels and convert to tensor
+        img_l, img_ab, _ = lab_split_tensor(img)
 
-        # normalize
-        if self.mean is not None or self.std is not None:
-            normalize(img_lq, self.mean, self.std, inplace=True)
-            normalize(img_gt, self.mean, self.std, inplace=True)
-
-        return {"lq": img_lq, "gt": img_gt, "lq_path": lq_path, "gt_path": gt_path}
+        return {"lq": img_l, "gt": img_ab, "lq_path": path, "gt_path": path}
 
     def __len__(self):
         return len(self.paths)

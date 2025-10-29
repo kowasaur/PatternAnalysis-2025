@@ -10,3 +10,5 @@ Talk about dataset. Turns out some of the training data is black and white!
 
 - https://github.com/csguoh/MambaIR/
 - https://data.vision.ee.ethz.ch/cvl/DIV2K/
+- https://arxiv.org/pdf/1603.08511
+- https://arxiv.org/pdf/2411.15269
