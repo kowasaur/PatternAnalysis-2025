@@ -10,11 +10,25 @@ from options import FINAL_MODEL_PATH
 TEST_DIR = "images/test/"
 OUTPUT_DIR = "images/output/"
 
+MAX_PIXELS = 1920 * 1080  # Rangpur runs out of memory on larger images
+
 
 def predict_image(img_path: str, model: MambaIRv2):
     """Run inference on a single image and save the output."""
-    # Make image grayscale and right format
-    y_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE) / 255.0
+    # Make image grayscale
+    y_img = cv2.imread(img_path, cv2.IMREAD_GRAYSCALE)
+
+    # Resize if too large
+    h, w = y_img.shape
+    if h * w > MAX_PIXELS:
+        scale_factor = (MAX_PIXELS / (h * w)) ** 0.5
+        new_h = int(h * scale_factor)
+        new_w = int(w * scale_factor)
+        y_img = cv2.resize(y_img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+        print(f"Resized {img_path} from ({w},{h}) to ({new_w},{new_h})")
+
+    # Convert into tensor
+    y_img = y_img / 255.0
     y_tensor = np.expand_dims(y_img, axis=2)  # img2tensor needs 3 dimensions
     y_tensor = img2tensor(y_tensor, float32=True)
     y_tensor = y_tensor.unsqueeze(0).cuda()
