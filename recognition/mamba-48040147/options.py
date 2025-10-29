@@ -3,10 +3,12 @@ import torch
 from os import path as osp
 from basicsr.utils import set_random_seed
 
+# Paths
 PRETRAINED_MODEL_PATH = "mambairv2_classicSR_Small_x2.pth"
 INITIAL_MODEL_PATH = "mambairv2_Colouriser.pth"
 FINAL_MODEL_PATH = INITIAL_MODEL_PATH
-DATASET_PATH = "./images/train"
+TRAIN_DATASET_PATH = "./images/train"
+VAL_DATASET_PATH = "./images/val"
 
 # Model
 UPSCALE = 1
@@ -31,7 +33,7 @@ UNFREEZE_ITER = 60000
 CROP_SIZE = 128
 DATASET_ENLARGE_RATIO = 100
 
-# Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml and https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_SRSmall_x2.yml
+# Modified from https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_ColorDN_level25.yml and https://github.com/csguoh/MambaIR/blob/main/options/train/mambairv2/train_MambaIRv2_SRSmall_x3.yml
 OPTIONS = {
     "name": "MambaIRv2_Colouriser",
     "model_type": "MambaIRv2Model",
@@ -40,11 +42,10 @@ OPTIONS = {
     "manual_seed": 10,
     "datasets": {
         "train": {
-            "task": "denoising_color",
             "name": "DIV2K",
             "type": "PairedImageDataset",
-            "dataroot_gt": DATASET_PATH,
-            "dataroot_lq": DATASET_PATH,
+            "dataroot_gt": TRAIN_DATASET_PATH,
+            "dataroot_lq": TRAIN_DATASET_PATH,
             "filename_tmpl": "{}",
             "io_backend": {"type": "disk"},
             "gt_size": CROP_SIZE,
@@ -55,6 +56,14 @@ OPTIONS = {
             "batch_size_per_gpu": BATCH_SIZE,
             "dataset_enlarge_ratio": DATASET_ENLARGE_RATIO,
             "prefetch_mode": None,
+        },
+        "val": {
+            "name": "DIV2K val",
+            "type": "PairedImageDataset",
+            "dataroot_gt": VAL_DATASET_PATH,
+            "dataroot_lq": VAL_DATASET_PATH,
+            "filename_tmpl": "{}",
+            "io_backend": {"type": "disk"},
         },
     },
     "network_g": {

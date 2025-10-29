@@ -2,15 +2,16 @@
 This file was modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/data/paired_image_dataset.py
 """
 
-from torch.utils import data as data
-
-from basicsr.data.data_util import paired_paths_from_folder
-from basicsr.data.transforms import augment, paired_random_crop
-from basicsr.utils.registry import DATASET_REGISTRY
-
 import numpy as np
 import cv2
 import torch
+import math
+from torch.utils import data as data
+from basicsr.data.data_util import paired_paths_from_folder
+from basicsr.data.transforms import augment, paired_random_crop
+from basicsr.data import build_dataloader
+from basicsr.data.data_sampler import EnlargedSampler
+
 
 # https://docs.opencv.org/4.9.0/de/d25/imgproc_color_conversions.html
 # Docs say L: 0~100, a: -127~127, b: -127~127
@@ -40,7 +41,6 @@ def lab_split_tensor(img_lab):
     return img_l, img_ab, L
 
 
-@DATASET_REGISTRY.register()
 class PairedImageDataset(data.Dataset):
     """Paired image dataset for image restoration.
 
@@ -101,3 +101,55 @@ class PairedImageDataset(data.Dataset):
 
     def __len__(self):
         return len(self.paths)
+
+
+def create_train_val_dataloader(opt, logger):
+    for phase, dataset_opt in opt["datasets"].items():
+        if phase == "train":
+            dataset_enlarge_ratio = dataset_opt.get("dataset_enlarge_ratio", 1)
+            train_set = PairedImageDataset(dataset_opt)
+            train_sampler = EnlargedSampler(
+                train_set, opt["world_size"], opt["rank"], dataset_enlarge_ratio
+            )
+            train_loader = build_dataloader(
+                train_set,
+                dataset_opt,
+                num_gpu=opt["num_gpu"],
+                dist=opt["dist"],
+                sampler=train_sampler,
+                seed=opt["manual_seed"],
+            )
+
+            num_iter_per_epoch = math.ceil(
+                len(train_set)
+                * dataset_enlarge_ratio
+                / (dataset_opt["batch_size_per_gpu"] * opt["world_size"])
+            )
+            total_iters = int(opt["train"]["total_iter"])
+            total_epochs = math.ceil(total_iters / (num_iter_per_epoch))
+            logger.info(
+                "Training statistics:"
+                f"\n\tNumber of train images: {len(train_set)}"
+                f"\n\tDataset enlarge ratio: {dataset_enlarge_ratio}"
+                f'\n\tBatch size per gpu: {dataset_opt["batch_size_per_gpu"]}'
+                f'\n\tWorld size (gpu number): {opt["world_size"]}'
+                f"\n\tRequire iter number per epoch: {num_iter_per_epoch}"
+                f"\n\tTotal epochs: {total_epochs}; iters: {total_iters}."
+            )
+        elif phase == "val":
+            val_set = PairedImageDataset(dataset_opt)
+            val_loader = build_dataloader(
+                val_set,
+                dataset_opt,
+                num_gpu=opt["num_gpu"],
+                dist=opt["dist"],
+                sampler=None,
+                seed=opt["manual_seed"],
+            )
+            logger.info(
+                f'Number of val images/folders in {dataset_opt["name"]}: {len(val_set)}'
+            )
+        else:
+            raise ValueError(f"Dataset phase {phase} is not recognized.")
+
+    return train_loader, train_sampler, val_loader, total_epochs, total_iters

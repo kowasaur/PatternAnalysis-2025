@@ -4,13 +4,9 @@ This file was modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/
 
 import datetime
 import logging
-import math
 import time
 import torch
 from os import path as osp
-
-from basicsr.data import build_dataloader, build_dataset
-from basicsr.data.data_sampler import EnlargedSampler
 from basicsr.data.prefetch_dataloader import CPUPrefetcher
 from basicsr.models import build_model
 from basicsr.utils import (
@@ -31,9 +27,7 @@ from options import (
     PRETRAINED_MODEL_PATH,
 )
 from predict import predict_test_folder
-
-# Don't remove these. They are used to register the dataset and model
-import dataset
+from dataset import create_train_val_dataloader
 import modules
 
 
@@ -44,6 +38,7 @@ def transform_pretrained_model_state():
     params = state_dict["params"]
 
     # Average the rgb weights to create a single-channel weight
+    # Since lightness is sort of mean of rgb
     params["conv_first.weight"] = params["conv_first.weight"].mean(dim=1, keepdim=True)
 
     # Remove the last convolutional layer weights
@@ -77,61 +72,6 @@ def freeze_except_last_and_first(model: modules.MambaIRv2):
         param.requires_grad = True
     for param in model.conv_last.parameters():
         param.requires_grad = True
-
-
-def create_train_val_dataloader(opt, logger):
-    # create train and val dataloaders
-    train_loader, val_loaders = None, []
-    for phase, dataset_opt in opt["datasets"].items():
-        if phase == "train":
-            dataset_enlarge_ratio = dataset_opt.get("dataset_enlarge_ratio", 1)
-            train_set = build_dataset(dataset_opt)
-            train_sampler = EnlargedSampler(
-                train_set, opt["world_size"], opt["rank"], dataset_enlarge_ratio
-            )
-            train_loader = build_dataloader(
-                train_set,
-                dataset_opt,
-                num_gpu=opt["num_gpu"],
-                dist=opt["dist"],
-                sampler=train_sampler,
-                seed=opt["manual_seed"],
-            )
-
-            num_iter_per_epoch = math.ceil(
-                len(train_set)
-                * dataset_enlarge_ratio
-                / (dataset_opt["batch_size_per_gpu"] * opt["world_size"])
-            )
-            total_iters = int(opt["train"]["total_iter"])
-            total_epochs = math.ceil(total_iters / (num_iter_per_epoch))
-            logger.info(
-                "Training statistics:"
-                f"\n\tNumber of train images: {len(train_set)}"
-                f"\n\tDataset enlarge ratio: {dataset_enlarge_ratio}"
-                f'\n\tBatch size per gpu: {dataset_opt["batch_size_per_gpu"]}'
-                f'\n\tWorld size (gpu number): {opt["world_size"]}'
-                f"\n\tRequire iter number per epoch: {num_iter_per_epoch}"
-                f"\n\tTotal epochs: {total_epochs}; iters: {total_iters}."
-            )
-        elif phase.split("_")[0] == "val":
-            val_set = build_dataset(dataset_opt)
-            val_loader = build_dataloader(
-                val_set,
-                dataset_opt,
-                num_gpu=opt["num_gpu"],
-                dist=opt["dist"],
-                sampler=None,
-                seed=opt["manual_seed"],
-            )
-            logger.info(
-                f'Number of val images/folders in {dataset_opt["name"]}: {len(val_set)}'
-            )
-            val_loaders.append(val_loader)
-        else:
-            raise ValueError(f"Dataset phase {phase} is not recognized.")
-
-    return train_loader, train_sampler, val_loaders, total_epochs, total_iters
 
 
 def train_pipeline(root_path):
