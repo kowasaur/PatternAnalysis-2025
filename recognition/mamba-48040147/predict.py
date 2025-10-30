@@ -20,7 +20,7 @@ def predict_image(img_path: str, model: MambaIRv2):
     img = read_image_lab(img_path)
 
     # Resize if too large
-    h, w = img.shape
+    h, w, _ = img.shape
     if h * w > MAX_PIXELS:
         scale_factor = (MAX_PIXELS / (h * w)) ** 0.5
         new_h = int(h * scale_factor)
@@ -62,7 +62,7 @@ def predict_test_folder(model: MambaIRv2):
 
 if __name__ == "__main__":
     model = MambaIRv2().cuda()
-    model.load_state_dict(torch.load(FINAL_MODEL_PATH)["params"], strict=True)
+    model.load_state_dict(torch.load(FINAL_MODEL_PATH), strict=True)
     model.eval()
 
     if len(sys.argv) > 1:

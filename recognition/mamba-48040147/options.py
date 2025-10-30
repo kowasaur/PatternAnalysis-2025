@@ -6,7 +6,7 @@ from basicsr.utils import set_random_seed
 # Paths
 PRETRAINED_MODEL_PATH = "mambairv2_classicSR_Small_x2.pth"
 INITIAL_MODEL_PATH = "mambairv2_Colouriser.pth"
-FINAL_MODEL_PATH = INITIAL_MODEL_PATH
+FINAL_MODEL_PATH = "mambairv2_Colouriser_Final.pth"
 TRAIN_DATASET_PATH = "./images/train"
 VAL_DATASET_PATH = "./images/val"
 
