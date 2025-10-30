@@ -83,31 +83,17 @@ OPTIONS = {
         "convffn_kernel_size": CONVFFN_KERNEL_SIZE,
         "mlp_ratio": MLP_RATIO,
     },
-    "path": {
-        "pretrain_network_g": INITIAL_MODEL_PATH,
-        "strict_load_g": False,
-        "resume_state": None,
-    },
     "train": {
         "optim_g": {
-            "type": "Adam",
             "lr": 2e-4,
             "weight_decay": 0,
             "betas": [0.9, 0.99],
         },
         "scheduler": {
-            "type": "MultiStepLR",
             "milestones": [50000, 100000, 160000, 180000, 190000],
             "gamma": 0.5,
         },
         "total_iter": 200000,
-        "warmup_iter": -1,
-        "pixel_opt": {
-            "type": "CharbonnierLoss",
-            "loss_weight": 1.0,
-            "reduction": "mean",
-            "eps": 1e-3,
-        },
     },
     "logger": {
         "print_freq": 500,
@@ -148,9 +134,7 @@ def parse_options(root_path) -> dict:
             dataset["scale"] = opt["scale"]
 
     # paths
-    for key, val in opt["path"].items():
-        if (val is not None) and ("resume_state" in key or "pretrain_network" in key):
-            opt["path"][key] = osp.expanduser(val)
+    opt["path"] = {}
 
     if opt["is_train"]:
         experiments_root = osp.join(root_path, "experiments", opt["name"])

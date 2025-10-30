@@ -7,8 +7,8 @@ import logging
 import time
 import torch
 from os import path as osp
+from torch.nn import functional as F
 from basicsr.data.prefetch_dataloader import CPUPrefetcher
-from basicsr.models import build_model
 from basicsr.utils import (
     AvgTimer,
     MessageLogger,
@@ -20,6 +20,7 @@ from basicsr.utils import (
     mkdir_and_rename,
 )
 from basicsr.utils.options import dict2str
+from basicsr.models import lr_scheduler as lr_scheduler
 from options import (
     INITIAL_MODEL_PATH,
     UNFREEZE_ITER,
@@ -28,7 +29,7 @@ from options import (
 )
 from predict import predict_test_folder
 from dataset import create_train_val_dataloader
-import modules
+from modules import MambaIRv2
 
 
 def transform_pretrained_model_state():
@@ -59,19 +60,54 @@ def transform_pretrained_model_state():
     torch.save(state_dict, INITIAL_MODEL_PATH)
 
 
-def set_all_requires_grad(model: modules.MambaIRv2, requires_grad: bool):
+def set_all_requires_grad(model: MambaIRv2, requires_grad: bool):
     """Set requires_grad for all the parameters in the model."""
     for param in model.parameters():
         param.requires_grad = requires_grad
 
 
-def freeze_except_last_and_first(model: modules.MambaIRv2):
+def freeze_except_last_and_first(model: MambaIRv2):
     """Freeze all layers except the first and last convolutional layers."""
     set_all_requires_grad(model, False)
     for param in model.conv_first.parameters():
         param.requires_grad = True
     for param in model.conv_last.parameters():
         param.requires_grad = True
+
+
+def loss(pred, target):
+    """Returns the overall loss and breakdown of the loss components."""
+    total = 0
+    pixel_loss = F.l1_loss(pred, target)
+    total += pixel_loss
+    return total, {"l1": pixel_loss.item(), "total": total.item()}
+
+
+def save_and_validate(model, current_iter, opt, val_loader, epoch, optim, msg_logger):
+    """Save the model, calculate validation loss and log the results."""
+    save_path = osp.join(opt["path"]["models"], f"mamba_colouriser_{current_iter}.pth")
+    torch.save(model.state_dict(), save_path)
+
+    losses = {}
+    model.eval()
+    with torch.no_grad():
+        for l, ab in val_loader:
+            l, ab = l.cuda(), ab.cuda()
+            output = model(l)
+            _, loss_dict = loss(output, ab)
+            for key, value in loss_dict.items():
+                if key not in losses:
+                    losses[key] = 0
+                losses[key] += value
+    model.train()
+
+    num_batches = len(val_loader)
+    val_losses = {"val_" + k: v / num_batches for k, v in losses.items()}
+
+    log_vars = {"epoch": epoch, "iter": current_iter}
+    log_vars.update({"lrs": [param_group["lr"] for param_group in optim.param_groups]})
+    log_vars.update(val_losses)
+    msg_logger(log_vars)
 
 
 def train_pipeline(root_path):
@@ -102,16 +138,22 @@ def train_pipeline(root_path):
 
     # create train and validation dataloaders
     result = create_train_val_dataloader(opt, logger)
-    train_loader, train_sampler, val_loaders, total_epochs, total_iters = result
+    train_loader, train_sampler, val_loader, total_epochs, total_iters = result
 
-    # must be called before build_model()
+    # must be called before building the model
     transform_pretrained_model_state()
 
     # create model
-    model = build_model(opt)
+    model = MambaIRv2().cuda()
+    model.load_state_dict(torch.load(INITIAL_MODEL_PATH)["params"], strict=False)
+    model.train()
 
     # freeze all layers except the first and last conv layers
-    freeze_except_last_and_first(model.net_g)
+    freeze_except_last_and_first(model)
+
+    # Learning
+    optim = torch.optim.Adam(model.parameters(), **opt["train"]["optim_g"])
+    scheduler = lr_scheduler.MultiStepRestartLR(optim, **opt["train"]["scheduler"])
 
     start_epoch = 0
     current_iter = 0
@@ -139,17 +181,13 @@ def train_pipeline(root_path):
             if current_iter > total_iters:
                 break
 
-            # Unfreeze everything
-            if current_iter == UNFREEZE_ITER:
-                set_all_requires_grad(model.net_g, True)
-
-            # update learning rate
-            model.update_learning_rate(
-                current_iter, warmup_iter=opt["train"].get("warmup_iter", -1)
-            )
             # training
-            model.feed_data(train_data)
-            model.optimize_parameters(current_iter)
+            l, ab = train_data[0].cuda(), train_data[1].cuda()
+            optim.zero_grad()
+            output = model(l)
+            total_loss, loss_dict = loss(output, ab)
+            total_loss.backward()
+            optim.step()
 
             iter_timer.record()
             if current_iter == 1:
@@ -159,54 +197,48 @@ def train_pipeline(root_path):
             # log
             if current_iter % opt["logger"]["print_freq"] == 0:
                 log_vars = {"epoch": epoch, "iter": current_iter}
-                log_vars.update({"lrs": model.get_current_learning_rate()})
+                log_vars.update(
+                    {"lrs": [param_group["lr"] for param_group in optim.param_groups]}
+                )
                 log_vars.update(
                     {
                         "time": iter_timer.get_avg_time(),
                         "data_time": data_timer.get_avg_time(),
                     }
                 )
-                log_vars.update(model.get_current_log())
+                log_vars.update(loss_dict)
                 msg_logger(log_vars)
 
-            # save models and training states
+            # save model and validate
             if current_iter % opt["logger"]["save_checkpoint_freq"] == 0:
                 logger.info("Saving model.")
-                model.save_network(model.net_g, "net_g", current_iter)
-
-            # validation
-            if opt.get("val") is not None and (
-                current_iter % opt["val"]["val_freq"] == 0
-            ):
-                if len(val_loaders) > 1:
-                    logger.warning(
-                        "Multiple validation datasets are *only* supported by SRModel."
-                    )
-                for val_loader in val_loaders:
-                    model.validation(
-                        val_loader, current_iter, tb_logger, opt["val"]["save_img"]
-                    )
+                save_and_validate(
+                    model, current_iter, opt, val_loader, epoch, optim, msg_logger
+                )
 
             data_timer.start()
             iter_timer.start()
             train_data = prefetcher.next()
+
+            # Unfreeze everything
+            if current_iter == UNFREEZE_ITER:
+                set_all_requires_grad(model, True)
+
+            # update learning rate
+            scheduler.step()
         # end of iter
 
     # end of epoch
 
     consumed_time = str(datetime.timedelta(seconds=int(time.time() - start_time)))
     logger.info(f"End of training. Time consumed: {consumed_time}")
-    logger.info("Save the latest model.")
-    model.save(epoch=-1, current_iter=-1)  # -1 stands for the latest
-    if opt.get("val") is not None:
-        for val_loader in val_loaders:
-            model.validation(
-                val_loader, current_iter, tb_logger, opt["val"]["save_img"]
-            )
+    logger.info("Saving the latest model.")
+    save_and_validate(model, current_iter, opt, val_loader, epoch, optim, msg_logger)
+
     if tb_logger:
         tb_logger.close()
 
-    return model.net_g
+    return model
 
 
 if __name__ == "__main__":

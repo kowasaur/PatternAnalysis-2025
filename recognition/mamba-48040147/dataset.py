@@ -97,7 +97,7 @@ class PairedImageDataset(data.Dataset):
         # Split channels and convert to tensor
         img_l, img_ab, _ = lab_split_tensor(img)
 
-        return {"lq": img_l, "gt": img_ab, "lq_path": path, "gt_path": path}
+        return img_l, img_ab
 
     def __len__(self):
         return len(self.paths)
