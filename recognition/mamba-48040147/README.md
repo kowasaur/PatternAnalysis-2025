@@ -73,17 +73,58 @@ Also, since the input is already the lightness channel, the output only needs to
 Thus, I made the last layer a simple 3x3 convolution that outputs 2 channels (a and b).
 I let these weights just be randomly initialised since there is no obvious way to use the pretrained weights here.
 
+## Dependencies and Reproducibility
+
+Conda is recommended for managing dependencies because there is an [environment.yml](./environment.yaml) file that has all of the required packages and their versions that you can use to easily set up the environment.
+
+Assuming your environment has `git`, `conda`, `ln`, and `wget`, you can just run the [setup.sh](./setup.sh) script to download all dependencies and set up the environment. This clones the MambaIRv2 repository, creates the conda environment, and downloads the dataset and pretrained weights.
+
+To set up the training, validation and test data:
+
+1. Unzip `DIV2K_train_LR_bicubic_X2.zip` and `DIV2K_valid_LR_bicubic_X2.zip`.
+2. Create an `images` folder and inside that make `train`, `val` and `test` folders.
+3. Move the images specified in [Dataset and Pre-Processing](#dataset-and-pre-processing) into the respective folders.
+4. Download the [test images](https://github.com/gayanku/greyscale-colorization) and move them into the `test` folder.
+
+To activate the conda environment, run
+
+```bash
+conda activate mambair
+```
+
+To train the model, run
+
+```bash
+python train.py
+```
+
+To run inference using the trained model on `image_name.png`, first copy the model weights to `./mambairv2_Colouriser_Final.pth` and then run
+
+```bash
+python predict.py image_name.png
+```
+
+The output image will be saved as `images/output/image_name.png`.
+
+Running just
+
+```bash
+python predict.py
+```
+
+will run inference on all images in the `test` folder.
+
+A set seed has been set up so the results should be reproducible. All training and testing was done on Rangpur using a single A100 GPU with 40GB VRAM. Training would have been faster if multiple GPUs were used but I did not want to hog too many resources.
+
+## Dataset and Pre-Processing
+
+Talk about dataset. Turns out some of the training data is black and white!
+
 ## Training Procedure
 
 ## Results
 
 Training plot and sample test results
-
-## Dependencies and Reproducibility
-
-## Dataset and Pre-Processing
-
-Talk about dataset. Turns out some of the training data is black and white!
 
 ## Design Decisions
 
