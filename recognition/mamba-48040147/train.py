@@ -75,12 +75,28 @@ def freeze_except_last_and_first(model: MambaIRv2):
         param.requires_grad = True
 
 
-def loss(pred, target):
+def wrong_colour_loss(pred, target, delta=0.08, k=30):
+    """
+
+    pred and target are shaped [B, 2, H, W], in ab space scaled to [-1, 1]
+    """
+    # euclidean distance in ab space is perceived colour difference
+    diff = torch.norm(pred - target, dim=1)  # [B, H, W]
+
+    # differentiable approximation of step function
+    soft = torch.sigmoid(k * (diff - delta))  # [B, H, W]
+
+    return soft.mean()
+
+
+def loss(pred, target, wrong_colour_weight=0.2):
     """Returns the overall loss and breakdown of the loss components."""
     total = 0
-    pixel_loss = F.l1_loss(pred, target)
-    total += pixel_loss
-    return total, {"l1": pixel_loss.item(), "total": total.item()}
+    l1 = F.l1_loss(pred, target)
+    total += l1
+    wc = wrong_colour_loss(pred, target)
+    total += wrong_colour_weight * wc
+    return total, {"l1": l1.item(), "wc": wc.item(), "total": total.item()}
 
 
 def save_and_validate(model, current_iter, opt, val_loader, epoch, optim, msg_logger):
