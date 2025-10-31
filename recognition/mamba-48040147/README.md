@@ -239,6 +239,13 @@ is close to 0.08.
 
 Training plot and sample test results
 
+### Test Results
+
+Here are the test results from the final trained model:
+
+![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg) ![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg)
+![G_2](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg) ![G_2](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg)
+
 ## Design Decisions
 
 ### Pretrained Model
