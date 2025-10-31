@@ -118,9 +118,122 @@ A set seed has been set up so the results should be reproducible. All training a
 
 ## Dataset and Pre-Processing
 
-Talk about dataset. Turns out some of the training data is black and white!
+The dataset I chose to use is [DIV2K](https://data.vision.ee.ethz.ch/cvl/DIV2K/) \[3\] because it was used to train the MambaIRv2 SR models and most denoising models.
+I did not use a larger dataset (the MambaIRv2 SR for example are also trained on Flickr2K) due to time and resource constraints (Rangpur has limited storage)
+and since this is a fine tuning task, I thought a smaller dataset would suffice.
+DIV2K is composed of a number of high quality colour photographs so it makes sense for this task.
+
+However, some of the images in the DIV2K dataset are greyscale or at least lack a lot of colour. These would be a detriment to fine tuning a colourisation model so
+I removed them. The images I removed are:
+
+- 0005x2.png
+- 0014x2.png
+- 0043x2.png
+- 0138x2.png
+- 0188x2.png
+- 0190x2.png
+- 0202x2.png
+- 0230x2.png
+- 0769x2.png
+- 0800x2.png
+- 0843x2.png
+- 0845x2.png
+- 0846x2.png
+- 0868x2.png
+- 0892x2.png
+
+I chose to use the 2X downscaled images instead of the original 2K resolution images because
+
+1. The model I am fine tuning was originally trained on these downscaled images as input so it would be "used" to them
+2. The 2K images take a lot of storage which is limited on Rangpur
+3. While training, 128x128 crops are used so with a smaller original image, each crop contains a larger portion of the image which may help with learning to use more global context
+4. For validation, the full size images are too large to fit in memory
+
+DIV2K comes already split into training and validation sets but I decided to change the split.
+I kept the first 22 validation images (0801x2.png - 0822x2.png) as the validation set and moved the rest to the training set.
+I did this so that the training set had more data and because validation uses the whole image instead of just a crop so you can view
+it as not needing as many images. I also wanted a smaller validation set so that validation would be faster.
+
+This meant the training set had 863 images and the validation set had 22 images.
+
+During training, 100 random 128x128 crops are taken from each image and they are randomly flipped and/or rotated. This was done in training all of the original MambaIRv2 models as well. Cropping was necessary due to memory constraints. If the images were instead resized, a lot of texture would be lost which is important for predicting colour. The multiple random crops per image and augmentations effectively increases the amount of training data and helps the model generalise better. Furthermore, all random aspects change each epoch which further increases the effective dataset size.
+
+Each training epoch thus has 86300 samples.
+
+Finally, each image is converted from RGB to CIELAB. The L channel is scaled to \[0, 1\] by dividing by 100, and the a and b channels are scaled to approximately \[-1, 1\] by dividing by 127. Neural networks tend to perform better when inputs and outputs are scaled to smaller ranges since weights can be kept smaller so gradients do not explode as easily.
 
 ## Training Procedure
+
+Many of the MambaIRv2 were actually not trained from scratch but rather fine tuned from other pretrained MambaIRv2 models.
+For example, the small SR x3 model was fine tuned from the small SR x2 model.
+Hence, I thought it was reasonable to fine tune for this project with a similar method.
+
+MambaIRv2 mainly focuses on number of iterations rather than number of epochs so I did the same. I used a batch size of 3 since that was the largest that could fit in memory. This means each epoch is 28767 iterations. It may have been better to use gradient accumulation to simulate a larger batch size, but the original MambaIRv2 models used a batch size of 4 so I thought 3 would be acceptable.
+
+I trained the model for 200000 total iterations. I originally tried 250000 since that was what the small SR x3 model used but it looked like this would have taken more than 2 and a half days so I reduced it. In total, there were then 7 epochs (although the 7th epoch stopped early since it stopped at 200000 iterations).
+
+When fine tuning begins, initially all parameters of the model are frozen except for the first and last convolution layers. MambaIRv2 did not do this but it seemed to be a good idea because the first and last layers would have to change a lot, whereas the other layers would not have to change much since they were already trained for image restoration. Freezing the other layers makes training faster and reduces the chance of the model forgetting what it had already learned. After 60000 iterations, with a now lower learning rate (see below), all parameters are then unfrozen to allow the whole model to be fine tuned for colourisation.
+
+I used the Adam optimiser with an inital learning rate of 0.0002 and used a scheduler to make this halve at iterations 50000, 100000, 160000, 180000 and 190000. I chose these values because they are scaled versions of what the small SR x3 model used, except that I added the 50000 milestone at the start and made the initial learning rate 0.0002 instead of 0.0001 so that the model could do the inital learning of the first and last layers faster (since they were not pretrained). I also used a weight decay of 0 and beta values of 0.9 and 0.99 as per the original MambaIRv2 model's training.
+
+### Loss Function
+
+The pretrained model I was using at first (see [below](#pretrained-model)) used Charbonnier loss with $\epsilon = 0.001$ so that is what I used.
+When I switched to using the small SR x2, I kept using Charbonnier loss because I saw no reason to change it.
+Charbonnier loss is usually defined as $\sqrt{x^2 + \epsilon^2}$ where $x$ is the difference between the predicted and target values \[4\].
+It acts like a smooth approximation to L1 loss and is differentiable at 0, which helps with stable training.
+
+At this point, the colourisations produced by the trained model were very dull and brown or grey a lot of the time.
+I noticed that the loss values I got never went below 0.03 and so I investigated the implementation of Charbonnier loss I was using (from the MambaIRv2 repository).
+It defined Charbonnier loss as $\sqrt{x^2 + \epsilon}$, not squaring the epsilon.
+This means that it was mathematically impossible for the loss to go below 0.0316 ($\sqrt{0.001} \approx 0.0316$) and since the gradient is very small around this point,
+the model could not really improve further.
+
+Instead of just reducing epsilon, I decided to switch to L1 loss ($|x|$) since it is what the SR models used
+and it can lead to faster convergence since the gradient does not approach 0 (except at 0).
+
+This alone would probably not have significantly improved the colours produced however.
+It is known that regression losses (like L1 or Charbonnier) tend to produce desaturated colours because
+they encourage conservative estimates that minimise average error \[5\]\[6\].
+To achieve more vibrant colours, using another loss would be beneficial.
+
+I think that introducing a discriminative loss, essentially changing the model into a conditional GAN, could be great for this task \[5\].
+If the colouriser always produces bland images, the discriminator would learn to easily identify them as fake and so the loss would be high.
+Thus, this would encourage the colouriser to produce more vibrant colours.
+I did not implement this however due to time constraints.
+
+Another approach that seemed promising to me was what Zhang et al. did \[6\].
+Instead of predicting the a and b values directly, they predicted a distribution over quantized ab values (313 bins).
+Then, they used a cross-entropy loss to train the model to predict the correct bin.
+This encourages the model to consider multiple plausible colours for each pixel rather than averaging them out.
+There are many situations where multiple colours are plausible for a given greyscale value (e.g. an apple could be red or green)
+so it would be better to model this rather than just predicting the average colour.
+They also used a weight in the loss to emphasise rare colours (the loss is based on the inverse frequency of colours in the training data)
+so that the model does not just learn to predict common colours like green, blue or grey all the time.
+
+I did not implement this either, again due to time, but it inspired me to think about colours as categories
+which led to the following idea:
+$$L_{WCC}((a_t, b_t), (a_p, b_p)) = \sigma \left(k \left(\sqrt{(a_t - a_p)^2 + (b_t - b_p)^2} - \delta\right)\right)$$
+where $(a_t, b_t)$ are the true ab values, $(a_p, b_p)$ are the predicted ab values, $\sigma(x) = \frac{1}{1+e^{-x}}$ is the sigmoid function and $k$ and $\delta$ are constants.
+
+$L_{WCC}$ is what I call "wrong colour category" loss. I originally thought to just use a step function: 0 loss when the difference is within $\delta$ (the idea is everything in $\delta$ radius is the same colour category) and 1 loss otherwise. This loss treats any colour that is the wrong category as the same so it penalises always just choosing a conservative guess. E.g. if the true colour could sometimes be red and sometimes green, if the model predicts brown all of the time it will always have a high loss but if it predicts say red then the loss will be lower. I believe this should lead to more vibrant colours. $L_{WCC}$ does not use a step function however because that is not differentiable so I used a sigmoid to approximate it. I used euclidean distance in ab space since in CIELAB, euclidean distance corresponds to perceptual difference.
+
+This loss function would not be reasonable on its own since the gradient for incorrect predictions is very small so the model would struggle to learn.
+
+The overall loss function I used is thus:
+$$L_1 + \lambda L_{WCC}$$
+
+$L_1$ is the mean L1 loss over every pixel's a and b values and $L_{WCC}$ is the mean wrong colour category loss over every pixel.
+In theory, $L_1$ encourages overall accuracy while $L_{WCC}$ encourages more vibrant colours.
+
+The specific hyperparameters I used were $k=30$, $\delta=0.08$ and $\lambda=0.2$.
+Due to a lack of time, these are the only combinations of values I tried.
+To be honest, I got these values from ChatGPT after explaining my idea to it.
+I looked at the graph on [Desmos](https://www.desmos.com/calculator/mmnb14hywi) to try to see if these looked reasonable
+and I thought it did, though this graph is not really accurate since it just looks at one channel of a single pixel's difference.
+One rough way to see that $\delta=0.08$ is probably reasonable is that \[6\] used 313 ab bins. Our normalised ab space goes from roughly -1 to 1
+so if we assume the space is a square (which it isn't and also it is dependent on the L value) then each bin would be about 0.11 units wide, which
+is close to 0.08.
 
 ## Results
 
@@ -142,6 +255,7 @@ Talk about stuff that makes using a pretrained model hard
 
 - \[1\] Gu, A., & Dao, T. (2024, May 31). Mamba: Linear-Time Sequence Modeling with Selective State Spaces. ArXiv. https://doi.org/10.48550/arXiv.2312.00752
 - \[2\] Guo, H., Guo, Y., Zha, Y., Zhang, Y., Li, W., Dai, T., Xia, S.-T., & Li, Y. (2025, March 11). MambaIRv2: Attentive State Space Restoration. ArXiv. https://arxiv.org/abs/2411.15269
-
-- https://data.vision.ee.ethz.ch/cvl/DIV2K/
-- https://arxiv.org/pdf/1603.08511
+- \[3\] Timofte, R., Augustsson, E., Gu, S., Wu, J., Ignatov, A., & Gool, L. V. (2017). DIV2K Dataset. Data.vision.ee.ethz.ch. https://data.vision.ee.ethz.ch/cvl/DIV2K/
+- \[4\] Lee, V. (2020, July 2). Loss Functions. Vivian’s Machine Learning Note’s. https://machine-learning-note.readthedocs.io/en/latest/basic/loss_functions.html
+- \[5\] Goree, S. (2021, April 21). The Limits of AI Image Colorization: A Companion. Sam Goree. https://samgoree.github.io/2021/04/21/colorization_companion.html
+- \[6\] Zhang, R., Isola, P., & Efros, A. A. (2016, October 5). Colorful Image Colorization. ArXiv. https://arxiv.org/abs/1603.08511
