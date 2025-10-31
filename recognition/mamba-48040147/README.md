@@ -243,13 +243,31 @@ Training plot and sample test results
 
 ### Pretrained Model
 
-Talk about having to decide which pretrained model to use as a base. Advantages and disadvantages
-Talk about stuff that makes using a pretrained model hard
+The MambaIRv2 model that I originally used as the base model was the Colour DN 15.
+This model is designed for denoising colour images with a noise level of 15.
 
-- both sr and denoising really only need local features whereas colour needs more context
-- Adding on to the above, sr and denoising don't really need to have a massive amount of training data, but with colour it would because if it has never seen something it probably can't guess it's colour. For example a tiger. If a tiger is not in the training data, how is it supposed to know it's orange with black stripes? Obviously some of it is contained in the lightness (like it can probably tell it's black stripes) but the orange part is tricky. Maybe if it had seen a lion or something it could guess but like what if the training data had no big cats?
+I chose it because unlike super-resolution, denoising does not change the image dimensions, like with colourisation.
+
+This model was quite slow to fine tune. I think a large part of this was that due to the size of the model, I could only use a batch size of 1.
+
+I thus decided to switch to a smaller model. The only smaller models were the light and small SR models.
+The light model has significantly fewer parameters so I thought it may not perform as well so I chose the small SR x2 model.
+The reason I chose the x2 model over the x3 or x4 models is that its what the x3 and x4 models were fine tuned from and since
+it was less trained overall, it may be less specialised to super-resolution and thus better for fine tuning to colourisation.
 
 ### Colour Space
+
+I knew from the start that I wanted to use a colour space that separated lightness from colour information.
+This makes the model's task easier since it can just take in the lightness channel and predict the colour channels.
+
+I initially chose YCbCr because of its simplicity. When reading an image as greyscale, the values are already the Y channel.
+Each channel is also just a linear combination of RGB so converting between RGB and YCbCr is easy.
+
+However, I later switched to CIELAB, primarily from seeing its use in \[6\].
+Although CIELAB-RGB conversion is mathematically more complex, from a coding perspective it is not when using a library.
+Furthermore, CIELAB is designed to be perceptually uniform, meaning that euclidean distances in this space correspond to perceptual differences.
+This is not true for YCbCr.
+Using CIELAB should then result in better colour predictions since the loss function will better reflect perceptual colour differences.
 
 ## References
 
