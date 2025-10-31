@@ -1,3 +1,8 @@
+"""
+Constants and configuration options for the MambaIRv2 Colouriser model and its
+training, validation and testing.
+"""
+
 import random
 import torch
 from os import path as osp
@@ -112,7 +117,8 @@ OPTIONS = {
 
 
 # Modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/utils/options.py
-def parse_options(root_path) -> dict:
+def parse_options(root_path: str) -> dict:
+    """Create the options dictionary and set random seed"""
     opt = OPTIONS
 
     # random seed

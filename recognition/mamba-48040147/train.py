@@ -1,4 +1,8 @@
 """
+Code for training, validating, testing, and saving the model.
+
+Usage: python train.py
+
 This file was modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/train.py
 """
 
@@ -75,8 +79,11 @@ def freeze_except_last_and_first(model: MambaIRv2):
         param.requires_grad = True
 
 
-def wrong_colour_loss(pred, target, delta=0.08, k=30):
-    """
+def wrong_colour_category_loss(pred, target, delta=0.08, k=30):
+    """Calculates a loss that penalizes colours that are a different "category".
+
+    The goal of this is to encourage more vibrant colours by penalising
+    conservative guesses. See the README for an explanation.
 
     pred and target are shaped [B, 2, H, W], in ab space scaled to [-1, 1]
     """
@@ -91,19 +98,19 @@ def wrong_colour_loss(pred, target, delta=0.08, k=30):
 
 def loss(pred, target, wrong_colour_weight=0.2):
     """Returns the overall loss and breakdown of the loss components."""
-    total = 0
     l1 = F.l1_loss(pred, target)
-    total += l1
-    wc = wrong_colour_loss(pred, target)
-    total += wrong_colour_weight * wc
-    return total, {"l1": l1.item(), "wc": wc.item(), "total": total.item()}
+    wcc = wrong_colour_category_loss(pred, target)
+    total = l1 + wrong_colour_weight * wcc
+    return total, {"l1": l1.item(), "wc": wcc.item(), "total": total.item()}
 
 
 def save_and_validate(model, current_iter, opt, val_loader, epoch, optim, msg_logger):
     """Save the model, calculate validation loss and log the results."""
+    # Save model
     save_path = osp.join(opt["path"]["models"], f"mamba_colouriser_{current_iter}.pth")
     torch.save(model.state_dict(), save_path)
 
+    # Evaluate on validation set
     losses = {}
     model.eval()
     with torch.no_grad():
@@ -117,17 +124,20 @@ def save_and_validate(model, current_iter, opt, val_loader, epoch, optim, msg_lo
                 losses[key] += value
     model.train()
 
+    # Calculate average losses
     num_batches = len(val_loader)
     val_losses = {"val_" + k: v / num_batches for k, v in losses.items()}
 
+    # Log validation losses
     log_vars = {"epoch": epoch, "iter": current_iter}
     log_vars.update({"lrs": [param_group["lr"] for param_group in optim.param_groups]})
     log_vars.update(val_losses)
     msg_logger(log_vars)
 
 
-def train_pipeline(root_path):
-    # parse options, set distributed setting, set ramdom seed
+def train_pipeline(root_path: str) -> MambaIRv2:
+    """Train the model and return the trained model."""
+    # parse options, set random seed
     opt = parse_options(root_path)
     opt["root_path"] = root_path
 
@@ -138,7 +148,7 @@ def train_pipeline(root_path):
     make_exp_dirs(opt)
     mkdir_and_rename(osp.join(opt["root_path"], "tb_logger", opt["name"]))
 
-    # WARNING: should not use get_root_logger in the above codes, including the called functions
+    # WARNING: should not use get_root_logger in the above code, including the called functions
     # Otherwise the logger will not be properly initialized
     log_file = osp.join(opt["path"]["log"], f"train_{opt['name']}_{get_time_str()}.log")
     logger = get_root_logger(

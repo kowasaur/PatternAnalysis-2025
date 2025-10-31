@@ -1,3 +1,17 @@
+"""
+Run inference using the trained model.
+
+The trained model weights must be at ./mambairv2_Colouriser_Final.pth
+
+Usage: python predict.py [image_path/image_name.jpg]
+
+If an image path is provided, the script will run inference on that image and
+save it to images/output/image_name.jpg
+
+If no argument is provided, the script will run inference on all images in
+images/test/ and save all results to images/output/
+"""
+
 import sys
 import os
 import cv2

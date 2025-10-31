@@ -1,4 +1,6 @@
 """
+Model architecture for the modified MambaIRv2.
+
 This file was modified from https://github.com/csguoh/MambaIR/blob/main/basicsr/archs/mambairv2_arch.py
 """
 
@@ -886,6 +888,7 @@ class PatchUnEmbed(nn.Module):
 
 
 class MambaIRv2(nn.Module):
+    """The modified MambaIRv2 model for image colourisation."""
     def __init__(
         self,
         img_size=IMG_SIZE,
@@ -1099,9 +1102,9 @@ class MambaIRv2(nn.Module):
         attn_mask = self.calculate_mask([h, w]).to(x.device)
         params = {"attn_mask": attn_mask, "rpi_sa": self.relative_position_index_SA}
 
-        # for getting colours
         x_first = self.conv_first(x)
         res = self.conv_after_body(self.forward_features(x_first, params)) + x_first
+        # for extracting colours from features
         x = self.conv_last(res)
 
         x = x / self.img_range + self.mean
