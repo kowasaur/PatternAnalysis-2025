@@ -243,8 +243,10 @@ Training plot and sample test results
 
 Here are the test results from the final trained model:
 
-![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg) ![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg)
-![G_2](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg) ![G_2](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg)
+| Input Greyscale                                                                                               | Output Colourised                                                                                             |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| ![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg) | ![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg) |
+| ![G_2](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg) | ![G_2](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg) |
 
 ## Design Decisions
 
