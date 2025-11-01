@@ -249,6 +249,21 @@ is close to 0.08.
 | ![Smooth Training Total Loss](./assets/loss/train_total_smooth.png) | ![Smooth Training L1 Loss](./assets/loss/train_l1_smooth.png) | ![Smooth Training LWCC Loss](./assets/loss/train_wc_smooth.png) |
 | ![Validation Total Loss](./assets/loss/val_total.png)               | ![Validation L1 Loss](./assets/loss/val_l1.png)               | ![Validation LWCC Loss](./assets/loss/val_wc.png)               |
 
+> Images: Plots of the training and validation losses over the course of training. The x-axis of each plot is the iteration and the y-axis is the loss. The first column show the total loss, what was optimised, and the other columns show the individual components of the loss function. The first row is the training loss, the second row is a smoothed version (smoothing of 0.8 in tensorboard), and the third row is the validation loss.
+
+As can be seen by the first row, the training loss was very noisy. This is to be expected with a small batch size of 3.
+The smoothed plots in the second row give a better idea of the overall trend of the training loss.
+We can see that for all losses, there is a general downward trend, indicating that the model is learning.
+
+The loss does not look like it has converged yet so I think if it could have been trained for longer, it would have improved further.
+
+I think the L1 validation loss is decreasing overall and probably the total loss as well, but the $L_{WCC}$ loss does not seem to be decreasing or increasing to me.
+The higher loss after interation 150000 in all validation losses _could_ maybe indicate overfitting, but I think it is more likely noise.
+
+The lowest total validation loss achieved was at iteration 150000 so this modeld was used as the final model for the results below.
+Note that since there are only 22 validation images, validation was only done every 10000 iterations and the plot is clearly unstable, this may
+not be the best model.
+
 ### Test Images
 
 | Input Greyscale                                                                                                                 | Output Colourised                                      |
@@ -276,15 +291,44 @@ is close to 0.08.
 | <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_21.jpg" width="420"/> | <img src="./assets/test-output/G_21.jpg" width="420"/> |
 | <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_22.jpg" width="420"/> | <img src="./assets/test-output/G_22.jpg" width="420"/> |
 
+Clearly, these results are not good, with most of the images being very dull.
+It seems that the model at least understands that the sky is blue and greenery is green.
+
+I think the poor results can be attributed to many factors such as the limited training time, small dataset size, probably suboptimal loss function,
+small model size and unoptimal hyperparameters. It is difficult to pinpoint exactly what the main issues are without further testing.
+
+I think colourisation is probably a more difficult task than super-resolution. For instance, for colourisation to be good, I think the model would have to have seen
+that object or something similar during training. For example, how would the model know a pumpkin is orange if it has never seen a pumpkin before? On the other hand,
+I think with super-resolution, the model just has to be able to understand textures, edges, lighting, etc. which are more general concepts.
+
 ### Observations
 
 | 100k Iterations                      | 150k Iterations                      | 200k Iterations                      |
 | ------------------------------------ | ------------------------------------ | ------------------------------------ |
 | ![100k](./assets/reddening/100k.png) | ![150k](./assets/reddening/150k.png) | ![200k](./assets/reddening/200k.png) |
 
+> Images: One of the validation images colourised at different stages of training.
+
+I noticed that as training progressed, many of the images tended to become a more reddish/brownish colour.
+For an example, see the image above. I think that a possible cause for this is if reddish/brownish colours are more common in the training data,
+then the model may learn to predict these colours more often to minimise the loss. The $L_{WCC}$ could have the unintended effect
+of encouraging this, especially if $\lambda$ is too high, since if the model struggles to predict colours in the correct "category",
+it may then just learn to predict the more common categories instead to reduce the overall loss.
+Using a weighted colour loss like discussed earlier could help alleviate this.
+
 | Earlier Model (no $L_{WCC}$)     | 100k Iterations                | 150k Iterations                       |
 | -------------------------------- | ------------------------------ | ------------------------------------- |
 | ![earlier](./assets/G_1_old.jpg) | ![100k](./assets/G_1_100k.jpg) | ![150k](./assets/test-output/G_1.jpg) |
+
+> Images: The G_1.jpg test image colourised by the earlier model that only use Charbonnier loss (left) and the final model at 100k (middle) and 150k (right) iterations.
+
+Out of curiosity, I ran some of the other models I trained on some of the test images.
+I know that using these results to choose the best model would be cheating so I did not, but I just want to make a bit of a note here.
+
+Some colourisations looked better with earlier models. Personally, I think the earlier model that only used Charbonnier loss produced
+the best results for the above image. The image looks more vibrant and there isn't the grey streak in the sky.
+I also think the model at 100k iterations looks better than the final model at 150k iterations for this image.
+There are some wrong green colourisations in the water, but the stronger greens on the trees make it look more appealing to me.
 
 ## Design Decisions
 
