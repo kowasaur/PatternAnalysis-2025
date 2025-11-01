@@ -178,6 +178,8 @@ When fine tuning begins, initially all parameters of the model are frozen except
 
 I used the Adam optimiser with an inital learning rate of 0.0002 and used a scheduler to make this halve at iterations 50000, 100000, 160000, 180000 and 190000. I chose these values because they are scaled versions of what the small SR x3 model used, except that I added the 50000 milestone at the start and made the initial learning rate 0.0002 instead of 0.0001 so that the model could do the inital learning of the first and last layers faster (since they were not pretrained). I also used a weight decay of 0 and beta values of 0.9 and 0.99 as per the original MambaIRv2 model's training.
 
+Every 10000 iterations, the model is evaluated on the validation set. After training is complete, the model with the lowest validation loss is used as the final model.
+
 ### Loss Function
 
 The pretrained model I was using at first (see [below](#pretrained-model)) used Charbonnier loss with $\epsilon = 0.001$ so that is what I used.

@@ -270,4 +270,6 @@ def train_pipeline(root_path: str) -> MambaIRv2:
 if __name__ == "__main__":
     current_path = osp.dirname(osp.abspath(__file__))
     model = train_pipeline(current_path)
+    # NOTE: The model here is the last trained model, not the best validated model.
+    # For the results shown in the README, predict.py was run separately using the best validated model.
     predict_test_folder(model)
