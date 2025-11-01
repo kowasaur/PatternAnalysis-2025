@@ -6,7 +6,7 @@
 
 ## Model and Problem Description
 
-Mamba \[1\] is a state-spaced based architecture designed as an efficient alternative to Transformers for modelling long sequential data such as text.
+Mamba \[1\] is a state-space based architecture designed as an efficient alternative to Transformers for modelling long sequential data such as text.
 Unlike Transformers, which use attention mechanisms with quadratic complexity, the original Mamba architecture employs selective state-space models (SSMs) that capture long-range dependencies in linear time, making it faster and more memory-efficient for long sequences.
 
 Here, we focus on MambaIRv2 \[2\], a variation introduced by Guo et al. for image restoration tasks.
@@ -52,7 +52,7 @@ The token mixer is different for each part:
 - The local part uses windowed multi-head self-attention (MHSA) to capture fine-grained spatial relationships within small, non-overlapping regions.
 - The global branch employs the Attentive State Space Module (ASSM), which extends Mamba’s state-space formulation to allow global, non-causal information exchange across the entire image sequence. (a) in the image above illustrates the general idea of ASSM and (b) and (c) show a bit more detail about parts of it.
 
-By combining local MHSA and global ASSM within the same block, each ASSB effectively builds hierarchical representations that integrate detailed texture information with broader contextual cues. Both local and global information is cruical for high quality colourisation.
+By combining local MHSA and global ASSM within the same block, each ASSB effectively builds hierarchical representations that integrate detailed texture information with broader contextual cues.
 
 ### Changed
 
@@ -166,11 +166,11 @@ Finally, each image is converted from RGB to CIELAB. The L channel is scaled to 
 
 ## Training Procedure
 
-Many of the MambaIRv2 were actually not trained from scratch but rather fine tuned from other pretrained MambaIRv2 models.
+Many of the MambaIRv2 models were actually not trained from scratch but rather fine tuned from other pretrained MambaIRv2 models.
 For example, the small SR x3 model was fine tuned from the small SR x2 model.
 Hence, I thought it was reasonable to fine tune for this project with a similar method.
 
-MambaIRv2 mainly focuses on number of iterations rather than number of epochs so I did the same. I used a batch size of 3 since that was the largest that could fit in memory. This means each epoch is 28767 iterations. It may have been better to use gradient accumulation to simulate a larger batch size, but the original MambaIRv2 models used a batch size of 4 so I thought 3 would be acceptable.
+MambaIRv2's training and fine tuning code mainly focuses on number of iterations rather than number of epochs so I did the same. I used a batch size of 3 since that was the largest that could fit in memory. This means each epoch is 28767 iterations. It may have been better to use gradient accumulation to simulate a larger batch size, but the original MambaIRv2 models used a batch size of 4 so I thought 3 would be acceptable.
 
 I trained the model for 200000 total iterations. I originally tried 250000 since that was what the small SR x3 model used but it looked like this would have taken more than 2 and a half days so I reduced it. In total, there were then 7 epochs (although the 7th epoch stopped early since it stopped at 200000 iterations).
 
@@ -181,6 +181,8 @@ I used the Adam optimiser with an inital learning rate of 0.0002 and used a sche
 Every 10000 iterations, the model is evaluated on the validation set. After training is complete, the model with the lowest validation loss is used as the final model.
 
 ### Loss Function
+
+Note: some of the expressions below use a square root sign. If it does not render properly, try a different browser.
 
 The pretrained model I was using at first (see [below](#pretrained-model)) used Charbonnier loss with $\epsilon = 0.001$ so that is what I used.
 When I switched to using the small SR x2, I kept using Charbonnier loss because I saw no reason to change it.
@@ -208,7 +210,7 @@ I did not implement this however due to time constraints.
 
 Another approach that seemed promising to me was what Zhang et al. did \[6\].
 Instead of predicting the a and b values directly, they predicted a distribution over quantized ab values (313 bins).
-Then, they used a cross-entropy loss to train the model to predict the correct bin.
+Then, they used cross-entropy loss to train the model to predict the correct bin.
 This encourages the model to consider multiple plausible colours for each pixel rather than averaging them out.
 There are many situations where multiple colours are plausible for a given greyscale value (e.g. an apple could be red or green)
 so it would be better to model this rather than just predicting the average colour.
@@ -216,15 +218,15 @@ They also used a weight in the loss to emphasise rare colours (the loss is based
 so that the model does not just learn to predict common colours like green, blue or grey all the time.
 
 I did not implement this either, again due to time, but it inspired me to think about colours as categories
-which led to the following idea:
-$$L_{WCC}((a_t, b_t), (a_p, b_p)) = \sigma \left(k \left(\sqrt{(a_t - a_p)^2 + (b_t - b_p)^2} - \delta\right)\right)$$
+which led to the following idea:\
+$$L_{WCC}((a_t, b_t), (a_p, b_p)) = \sigma \left(k \left(\sqrt{(a_t - a_p)^2 + (b_t - b_p)^2} - \delta\right)\right)$$\
 where $(a_t, b_t)$ are the true ab values, $(a_p, b_p)$ are the predicted ab values, $\sigma(x) = \frac{1}{1+e^{-x}}$ is the sigmoid function and $k$ and $\delta$ are constants.
 
 $L_{WCC}$ is what I call "wrong colour category" loss. I originally thought to just use a step function: 0 loss when the difference is within $\delta$ (the idea is everything in $\delta$ radius is the same colour category) and 1 loss otherwise. This loss treats any colour that is the wrong category as the same so it penalises always just choosing a conservative guess. E.g. if the true colour could sometimes be red and sometimes green, if the model predicts brown all of the time it will always have a high loss but if it predicts say red then the loss will be lower. I believe this should lead to more vibrant colours. $L_{WCC}$ does not use a step function however because that is not differentiable so I used a sigmoid to approximate it. I used euclidean distance in ab space since in CIELAB, euclidean distance corresponds to perceptual difference.
 
 This loss function would not be reasonable on its own since the gradient for incorrect predictions is very small so the model would struggle to learn.
 
-The overall loss function I used is thus:
+The overall loss function I used is thus:\
 $$L_1 + \lambda L_{WCC}$$
 
 $L_1$ is the mean L1 loss over every pixel's a and b values and $L_{WCC}$ is the mean wrong colour category loss over every pixel.
@@ -260,7 +262,7 @@ The loss does not look like it has converged yet so I think if it could have bee
 I think the L1 validation loss is decreasing overall and probably the total loss as well, but the $L_{WCC}$ loss does not seem to be decreasing or increasing to me.
 The higher loss after interation 150000 in all validation losses _could_ maybe indicate overfitting, but I think it is more likely noise.
 
-The lowest total validation loss achieved was at iteration 150000 so this modeld was used as the final model for the results below.
+The lowest total validation loss achieved was at iteration 150000 so this model was used as the final model for the results below.
 Note that since there are only 22 validation images, validation was only done every 10000 iterations and the plot is clearly unstable, this may
 not be the best model.
 
@@ -292,12 +294,12 @@ not be the best model.
 | <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_22.jpg" width="420"/> | <img src="./assets/test-output/G_22.jpg" width="420"/> |
 
 Clearly, these results are not good, with most of the images being very dull.
-It seems that the model at least understands that the sky is blue and greenery is green.
+Although, it seems that the model at least understands that the sky is blue and greenery is green.
 
 I think the poor results can be attributed to many factors such as the limited training time, small dataset size, probably suboptimal loss function,
 small model size and unoptimal hyperparameters. It is difficult to pinpoint exactly what the main issues are without further testing.
 
-I think colourisation is probably a more difficult task than super-resolution. For instance, for colourisation to be good, I think the model would have to have seen
+I think also that colourisation is probably a more difficult task than super-resolution. For instance, for colourisation to be good, I think the model would have to have seen
 that object or something similar during training. For example, how would the model know a pumpkin is orange if it has never seen a pumpkin before? On the other hand,
 I think with super-resolution, the model just has to be able to understand textures, edges, lighting, etc. which are more general concepts.
 
@@ -320,7 +322,7 @@ Using a weighted colour loss like discussed earlier could help alleviate this.
 | -------------------------------- | ------------------------------ | ------------------------------------- |
 | ![earlier](./assets/G_1_old.jpg) | ![100k](./assets/G_1_100k.jpg) | ![150k](./assets/test-output/G_1.jpg) |
 
-> Images: The G_1.jpg test image colourised by the earlier model that only use Charbonnier loss (left) and the final model at 100k (middle) and 150k (right) iterations.
+> Images: The G_1.jpg test image colourised by the earlier model that only used Charbonnier loss (left) and the final model at 100k (middle) and 150k (right) iterations.
 
 Out of curiosity, I ran some of the other models I trained on some of the test images.
 I know that using these results to choose the best model would be cheating so I did not, but I just want to make a bit of a note here.
