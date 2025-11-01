@@ -249,30 +249,30 @@ is close to 0.08.
 
 ### Test Images
 
-| Input Greyscale                                                                                                 | Output Colourised                      |
-| --------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| ![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg)   | ![G_1](./assets/test-output/G_1.jpg)   |
-| ![G_2](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg)   | ![G_2](./assets/test-output/G_2.jpg)   |
-| ![G_3](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_3.jpg)   | ![G_3](./assets/test-output/G_3.jpg)   |
-| ![G_4](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_4.jpg)   | ![G_4](./assets/test-output/G_4.jpg)   |
-| ![G_5](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_5.jpg)   | ![G_5](./assets/test-output/G_5.jpg)   |
-| ![G_6](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_6.jpg)   | ![G_6](./assets/test-output/G_6.jpg)   |
-| ![G_7](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_7.jpg)   | ![G_7](./assets/test-output/G_7.jpg)   |
-| ![G_8](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_8.jpg)   | ![G_8](./assets/test-output/G_8.jpg)   |
-| ![G_9](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_9.jpg)   | ![G_9](./assets/test-output/G_9.jpg)   |
-| ![G_10](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_10.jpg) | ![G_10](./assets/test-output/G_10.jpg) |
-| ![G_11](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_11.jpg) | ![G_11](./assets/test-output/G_11.jpg) |
-| ![G_12](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_12.jpg) | ![G_12](./assets/test-output/G_12.jpg) |
-| ![G_13](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_13.jpg) | ![G_13](./assets/test-output/G_13.jpg) |
-| ![G_14](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_14.jpg) | ![G_14](./assets/test-output/G_14.jpg) |
-| ![G_15](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_15.jpg) | ![G_15](./assets/test-output/G_15.jpg) |
-| ![G_16](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_16.jpg) | ![G_16](./assets/test-output/G_16.jpg) |
-| ![G_17](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_17.jpg) | ![G_17](./assets/test-output/G_17.jpg) |
-| ![G_18](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_18.jpg) | ![G_18](./assets/test-output/G_18.jpg) |
-| ![G_19](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_19.jpg) | ![G_19](./assets/test-output/G_19.jpg) |
-| ![G_20](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_20.jpg) | ![G_20](./assets/test-output/G_20.jpg) |
-| ![G_21](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_21.jpg) | ![G_21](./assets/test-output/G_21.jpg) |
-| ![G_22](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_22.jpg) | ![G_22](./assets/test-output/G_22.jpg) |
+| Input Greyscale                                                                                                                 | Output Colourised                                      |
+| ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg" width="420"/>  | <img src="./assets/test-output/G_1.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_2.jpg" width="420"/>  | <img src="./assets/test-output/G_2.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_3.jpg" width="420"/>  | <img src="./assets/test-output/G_3.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_4.jpg" width="420"/>  | <img src="./assets/test-output/G_4.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_5.jpg" width="420"/>  | <img src="./assets/test-output/G_5.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_6.jpg" width="420"/>  | <img src="./assets/test-output/G_6.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_7.jpg" width="420"/>  | <img src="./assets/test-output/G_7.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_8.jpg" width="420"/>  | <img src="./assets/test-output/G_8.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_9.jpg" width="420"/>  | <img src="./assets/test-output/G_9.jpg" width="420"/>  |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_10.jpg" width="420"/> | <img src="./assets/test-output/G_10.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_11.jpg" width="420"/> | <img src="./assets/test-output/G_11.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_12.jpg" width="420"/> | <img src="./assets/test-output/G_12.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_13.jpg" width="420"/> | <img src="./assets/test-output/G_13.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_14.jpg" width="420"/> | <img src="./assets/test-output/G_14.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_15.jpg" width="420"/> | <img src="./assets/test-output/G_15.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_16.jpg" width="420"/> | <img src="./assets/test-output/G_16.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_17.jpg" width="420"/> | <img src="./assets/test-output/G_17.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_18.jpg" width="420"/> | <img src="./assets/test-output/G_18.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_19.jpg" width="420"/> | <img src="./assets/test-output/G_19.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_20.jpg" width="420"/> | <img src="./assets/test-output/G_20.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_21.jpg" width="420"/> | <img src="./assets/test-output/G_21.jpg" width="420"/> |
+| <img src="https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_22.jpg" width="420"/> | <img src="./assets/test-output/G_22.jpg" width="420"/> |
 
 ### Observations
 
@@ -282,7 +282,7 @@ is close to 0.08.
 
 | Earlier Model (no $L_{WCC}$)     | 100k Iterations                | 150k Iterations                       |
 | -------------------------------- | ------------------------------ | ------------------------------------- |
-| ![earlier](./assets/G_1_old.png) | ![100k](./assets/G_1_100k.jpg) | ![150k](./assets/test-output/G_1.jpg) |
+| ![earlier](./assets/G_1_old.jpg) | ![100k](./assets/G_1_100k.jpg) | ![150k](./assets/test-output/G_1.jpg) |
 
 ## Design Decisions
 
