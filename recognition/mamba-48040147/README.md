@@ -1,6 +1,8 @@
 # MambaIRv2 Based Greyscale Image Colouriser
 
-Image of greyscale and colour image side by side
+![Example Colourisation](./assets/val_example.png)
+
+> Image: An example of the final model's colourisation on one of the validation images. Left: Greyscale input. Right: Colourised output.
 
 ## Model and Problem Description
 
@@ -237,6 +239,16 @@ is close to 0.08.
 
 ## Results
 
+### Training and Validation Loss
+
+| Total Loss                                                          | L1 Loss                                                       | $L_{WCC}$ Loss                                                  |
+| ------------------------------------------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------- |
+| ![Training Total Loss](./assets/loss/train_total.png)               | ![Training L1 Loss](./assets/loss/train_l1.png)               | ![Training LWCC Loss](./assets/loss/train_wc.png)               |
+| ![Smooth Training Total Loss](./assets/loss/train_total_smooth.png) | ![Smooth Training L1 Loss](./assets/loss/train_l1_smooth.png) | ![Smooth Training LWCC Loss](./assets/loss/train_wc_smooth.png) |
+| ![Validation Total Loss](./assets/loss/val_total.png)               | ![Validation L1 Loss](./assets/loss/val_l1.png)               | ![Validation LWCC Loss](./assets/loss/val_wc.png)               |
+
+### Test Images
+
 | Input Greyscale                                                                                                 | Output Colourised                      |
 | --------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
 | ![G_1](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_1.jpg)   | ![G_1](./assets/test-output/G_1.jpg)   |
@@ -261,6 +273,16 @@ is close to 0.08.
 | ![G_20](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_20.jpg) | ![G_20](./assets/test-output/G_20.jpg) |
 | ![G_21](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_21.jpg) | ![G_21](./assets/test-output/G_21.jpg) |
 | ![G_22](https://raw.githubusercontent.com/gayanku/greyscale-colorization/refs/heads/main/test-dataset/G_22.jpg) | ![G_22](./assets/test-output/G_22.jpg) |
+
+### Observations
+
+| 100k Iterations                      | 150k Iterations                      | 200k Iterations                      |
+| ------------------------------------ | ------------------------------------ | ------------------------------------ |
+| ![100k](./assets/reddening/100k.png) | ![150k](./assets/reddening/150k.png) | ![200k](./assets/reddening/200k.png) |
+
+| Earlier Model (no $L_{WCC}$)     | 100k Iterations                | 150k Iterations                       |
+| -------------------------------- | ------------------------------ | ------------------------------------- |
+| ![earlier](./assets/G_1_old.png) | ![100k](./assets/G_1_100k.jpg) | ![150k](./assets/test-output/G_1.jpg) |
 
 ## Design Decisions
 
