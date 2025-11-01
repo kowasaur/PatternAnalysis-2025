@@ -889,6 +889,7 @@ class PatchUnEmbed(nn.Module):
 
 class MambaIRv2(nn.Module):
     """The modified MambaIRv2 model for image colourisation."""
+
     def __init__(
         self,
         img_size=IMG_SIZE,
@@ -1110,6 +1111,6 @@ class MambaIRv2(nn.Module):
         x = x / self.img_range + self.mean
 
         # unpadding
-        x = x[..., : h_ori , : w_ori]
+        x = x[..., :h_ori, :w_ori]
 
         return x
