@@ -72,6 +72,7 @@ def predict_test_folder(model: MambaIRv2):
         print(f"Processing {img_name}...")
         img_path = os.path.join(TEST_DIR, img_name)
         predict_image(img_path, model)
+        torch.cuda.empty_cache()  # free up memory
 
 
 if __name__ == "__main__":
